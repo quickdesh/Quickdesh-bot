@@ -272,8 +272,8 @@ class DiscordManager extends CommunicationBridge {
 
 		const name = title.split("Guild Name: ")
 		const on3 = on.split(": ")[0] + ": " + (parseInt(on.split(":")[1])-1).toString() // Subtract 1 player (bot) from the given number
-		const gr = g1.split(",") 
-		const gm = g2.split(",")
+		const gr = g1.slice(0 , -1).split(",") 
+		const gm = g2.slice(0 , -1).split(",")
     console.log(gm)
 
     var chatChannels = this.getChatChannels(chatTypes)
@@ -326,8 +326,8 @@ class DiscordManager extends CommunicationBridge {
 
 		const name = title.split("Guild Name: ")
 		const mem3 = mem.split(": ")[0] + ": " + (parseInt(mem.split(":")[1])-1).toString()
-		const gr = g1.split(",") 
-		const gm = g2.split(",")
+		const gr = g1.slice(0 , -1).split(",") 
+		const gm = g2.slice(0 , -1).split(",")
 
     var chatChannels = this.getChatChannels(chatTypes)
     
