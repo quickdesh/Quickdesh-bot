@@ -1,0 +1,27 @@
+{
+	"server": {
+		"host": "mc.hypixel.net",
+		"port": 25565
+	},
+	"minecraft": {
+		"username": "your Username",
+		"password": "your Password",
+		"lobbyHolder": "bot IGN",
+		"accountType": "microsoft"
+	},
+	"discord": {
+		"token": "Bot token",
+		"clientid":"Bot id",
+		"guildid":"Id of Guild",
+		"gcchannel": "Channel id of Guild Chat",
+		"dmchannel": "Channel id of DMs",
+		"occhannel": "Channel id of Officer Chat",
+		"joinleavechannel": "Channel id of Joinees and Leavers",
+		"commanderIds": ["List of ids of commanders"],
+		"ownerId": "id of owner",
+		"prefix": "+",
+		"messageMode": "webhook",
+		"thumbnail": "image link",
+		"guildname": "Name of Guild"
+	}
+}

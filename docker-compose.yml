@@ -1,0 +1,28 @@
+version: '3'
+services:
+  bridge:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: senither/hypixel-discord-chat-bridge
+    environment:
+      SERVER_HOST: mc.hypixel.net
+      SERVER_PORT: 25565
+      MINECRAFT_USERNAME: your Username
+      MINECRAFT_PASSWORD: your Password
+      MINECRAFT_LOBBY_HOLDER: bot IGN
+      MINECRAFT_ACCOUNT_TYPE: microsoft
+      DISCORD_TOKEN: Bot token
+      DISCORD_CLIENTID: Bot id
+      DISCORD_GUILDID: Id of Guild
+      DISCORD_GCCHANNEL: "Channel id of Guild Chat"
+      DISCORD_DMCHANNEL: "Channel id of DMs"
+      DISCORD_OCCHANNEL: "Channel id of Officer Chat"
+      DISCORD_JOINLEAVECHANNEL: "Channel id of Joinees and Leavers"
+      DISCORD_COMMANDERIDS: ["List of ids of commanders"]
+      DISCORD_OWNERID: "id of owner"
+      DISCORD_PREFIX: "+"
+      DISCORD_MESSAGEMODE: "webhook"
+      DISCORD_THUMBNAIL: "image link"
+      DISCORD_GUILDNAME: "Name of Guild"
