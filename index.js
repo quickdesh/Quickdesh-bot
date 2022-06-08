@@ -11,3 +11,5 @@ app
   .catch(err => {
     console.error(err)
   })
+
+  // cd OneDrive/Documents/GitHub/Quickdesh-bot
