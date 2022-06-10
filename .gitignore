@@ -4,5 +4,4 @@ yarn-error.log
 config.json
 /.vscode
 thread_manager.json
-src/discord/Embeds_Discord_List.json
 index.js
