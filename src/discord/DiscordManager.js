@@ -271,10 +271,9 @@ class DiscordManager extends CommunicationBridge {
 		this.app.log.broadcast('Guild Online', 'Command')
 
 		const name = title.split("Guild Name: ")
-		const on3 = on.split(": ")[0] + ": " + (parseInt(on.split(":")[1])-1).toString() // Subtract 1 player (bot) from the given number
-		const gr = g1.slice(0 , -1).split(",") 
-		const gm = g2.slice(0 , -1).split(",")
-    console.log(gm)
+		const onlineMembers = on.split(": ")[0] + ": " + (parseInt(on.split(":")[1])-1).toString() // Subtract 1 player (bot) from the given number
+		const guildRanks = g1.slice(0 , -1).split(",") 
+		const guildMembers = g2.slice(0 , -1).split(",")
 
     var chatChannels = this.getChatChannels(chatTypes)
     
@@ -282,33 +281,33 @@ class DiscordManager extends CommunicationBridge {
 
 		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
 
-			if((gm[gm.length-1]=="") && (gm.length==1)){
+			if((guildMembers[guildMembers.length-1]=="") && (guildMembers.length==1)){
 				const embed1 = new MessageEmbed()
 				.setTitle(`${name[1]}`)
   			.setColor(`#47F049`)
 				.setTimestamp(Date.now())
-				.setFooter({ text : on3 })
+				.setFooter({ text : onlineMembers })
 				.setThumbnail(this.app.config.discord.thumbnail)
 				.addField("No one is online at the moment","⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾",false)
 				channel.send({ embeds: [embed1] })
 
 			}else{
 				
-				if(gm[gm.length-1]==""){
-					gm.pop()
+				if(guildMembers[guildMembers.length-1]==""){
+					guildMembers.pop()
 				}
 				const embed2 = new MessageEmbed()
 				.setTitle(`${name[1]}`)
 				.setColor(`#47F049`)
 				.setTimestamp(Date.now())
-				.setFooter({ text : on3 } )
+				.setFooter({ text : onlineMembers } )
 				.setThumbnail(this.app.config.discord.thumbnail)
-				for (let i = 0; i <gm.length; i++){
-          if(gm[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
+				for (let i = 0; i <guildRanks.length; i++){
+          if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
 
-          // if (gm.length == 2 && i == 1) embed2.addField("<:blank:983742482351263744>","<:blank:983742482351263744>",false)
+          // if (guildMembers.length == 2 && i == 1) embed2.addField("<:blank:983742482351263744>","<:blank:983742482351263744>",false)
 
-					embed2.addField(gr[i], gm[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
+					embed2.addField(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
                                       .replace(/\●  /g,'● ')  // Fix spacing between player names
                                       .replace(/_/g,"\\_")  // Fix underscores causing italics
                                       .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''),false)   // Remove Bot from embed
@@ -325,9 +324,9 @@ class DiscordManager extends CommunicationBridge {
 		this.app.log.broadcast('Guild List', 'Command')
 
 		const name = title.split("Guild Name: ")
-		const mem3 = mem.split(": ")[0] + ": " + (parseInt(mem.split(":")[1])-1).toString()
-		const gr = g1.slice(0 , -1).split(",") 
-		const gm = g2.slice(0 , -1).split(",")
+		const totalMembers = mem.split(": ")[0] + ": " + (parseInt(mem.split(":")[1])-1).toString()
+		const guildRanks = g1.slice(0 , -1).split(",") 
+		const guildMembers = g2.slice(0 , -1).split(",")
 
     var chatChannels = this.getChatChannels(chatTypes)
     
@@ -339,13 +338,13 @@ class DiscordManager extends CommunicationBridge {
 			.setTitle(`${name[1]}`)
   		.setColor(`#47F049`)
 			.setTimestamp(Date.now())
-      .setFooter({ text: mem3 })
+      .setFooter({ text: totalMembers })
 			.setThumbnail(this.app.config.discord.thumbnail)
-			for (let i = 0; i <gr.length; i++){
+			for (let i = 0; i <guildRanks.length; i++){
 
-        if(gm[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
+        if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
 
-				embed.addField(gr[i], gm[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
+				embed.addField(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
                                    .replace(/\●  /g,'● ')  // Fix spacing between player names
                                    .replace(/_/g,"\\_")  // Fix underscores causing italics
                                    .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''),false)   // Remove Bot from embed
