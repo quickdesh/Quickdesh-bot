@@ -10,8 +10,13 @@ class CommandCommand extends DiscordCommand {
 	}
 
 	onCommand(message) {
+
+		let chatType = this.getChannelType(message)
+		this.setChatTypes (chatType)
+
+		let chatMessage = this.getMessage(message)
 		
-		this.sendMinecraftMessage(String(message).slice(3))
+		this.sendMinecraftMessage(chatMessage)
 	}
 }
 

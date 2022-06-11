@@ -10,9 +10,12 @@ class GuildChatCommand extends DiscordCommand {
 	}
 
 	onCommand(message) {
-		let chatMessage = message.content.slice(4)
+		let chatType = this.getChannelType(message)
+		this.setChatTypes (chatType)
 
-		this.sendMinecraftMessage(`/gc ${chatMessage ? chatMessage : ''}`)
+		let chatMessage = this.getMessage(message)
+		
+		this.sendMinecraftMessage(`/gc ${chatMessage}`)
 	}
 }
 

@@ -15,6 +15,16 @@ class DiscordCommand {
 		return args
 	}
 
+	getMessage(message) {
+		let array = this.getArgs(message)
+
+		message = ""
+		for(let i = 0; i < array.length; i++) {
+			message+=array[i] + " "
+		}
+		return message
+	}
+
 	sendMinecraftMessage(message) {
 		if (this.discord.app.minecraft.bot.player !== undefined) {
 			this.discord.app.minecraft.bot.chat(message)

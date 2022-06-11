@@ -11,9 +11,12 @@ class OfficerChatCommand extends DiscordCommand {
 
 
 	onCommand(message) {
-		let chatMessage = message.content.slice(4)
+		let chatType = this.getChannelType(message)
+		this.setChatTypes (chatType)
 
-		this.sendMinecraftMessage(`/oc ${chatMessage ? chatMessage : ''}`)
+		let chatMessage = this.getMessage(message)
+		
+		this.sendMinecraftMessage(`/oc ${chatMessage}`)
 	}
 }
 
