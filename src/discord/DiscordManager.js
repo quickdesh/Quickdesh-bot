@@ -21,7 +21,8 @@ class DiscordManager extends CommunicationBridge {
       intents: [
         "GUILDS",
         "GUILD_MESSAGES",
-        "GUILD_WEBHOOKS"
+        "GUILD_WEBHOOKS",
+        "GUILD_EMOJIS_AND_STICKERS"
       ],
       allowedMentions: {
         parse: [
@@ -35,7 +36,11 @@ class DiscordManager extends CommunicationBridge {
     
     this.client.on('ready', () => this.stateHandler.onReady())
 
-    this.client.on('messageCreate', async message => this.messageHandler.onMessage(message))
+    this.client.on('messageCreate', async message => {
+      
+      this.messageHandler.onMessage(message)
+    
+    })
 
     this.client.on('interactionCreate', async butt => {
 

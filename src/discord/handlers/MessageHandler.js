@@ -19,28 +19,35 @@ class MessageHandler {
 	}
 
 	async onMessage(message) {
-	  if (!this.shouldBroadcastMessage(message)) {
-		return
-	  }
-  
-	  if (this.command.handle(message)) {
-		return
-	  }
-  
-	  const content = await this.stripDiscordContent(message)
-	  if ((content.length == 0) && (!message.attachments.size > 0)){
-		return
-	  }
-  
-	  this.discord.broadcastMessage({
-		username: message.member.displayName,
-		message: await this.stripDiscordContent(message),
-		replyingTo: await this.fetchReplymem(message),
-		repliedTomsg: await this.fetchReplymsg(message),
-		Attachmsg: await this.fetchAttachmsg(message),
-		chatType: await this.chatType(message),
-	  })
+
+		if(message.guildId == this.discord.app.config.discord.guildid){
+
+			if (message.content.toLowerCase().indexOf("bean") != -1) message.react("986216693024051220")
+		} 
+		
+		if (!this.shouldBroadcastMessage(message)) {
+			return
+		}
+	
+		if (this.command.handle(message)) {
+			return
+		}
+	
+		const content = await this.stripDiscordContent(message)
+		if ((content.length == 0) && (!message.attachments.size > 0)){
+			return
+		}
+	
+		this.discord.broadcastMessage({
+			username: message.member.displayName,
+			message: await this.stripDiscordContent(message),
+			replyingTo: await this.fetchReplymem(message),
+			repliedTomsg: await this.fetchReplymsg(message),
+			Attachmsg: await this.fetchAttachmsg(message),
+			chatType: await this.chatType(message),
+		})
 	}
+
   async chatType(message){
 	  
 	  if (message.channel.parentId == this.discord.app.config.discord.dmchannel){
