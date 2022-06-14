@@ -48,12 +48,12 @@ class DiscordManager extends CommunicationBridge {
         butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
         const player = butt.customId.split(" ")[1]
         this.app.minecraft.bot.chat(`/g accept ${player}`)
-        butt.channel.send({content: `${butt.user} accepted ${player}`})
+        butt.channel.reply({content: `${butt.user} accepted ${player}`})
       }
       else if(butt.customId.split(" ")[0] == "rejectjoinee"){
         butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
         const player = butt.customId.split(" ")[1]
-        butt.channel.send({content: `${butt.user} rejected ${player}`})
+        butt.channel.reply({content: `${butt.user} rejected ${player}`})
       }
     })
     
@@ -211,7 +211,7 @@ class DiscordManager extends CommunicationBridge {
       })
     })}
     else if (chatType=="oc"){
-      this.app.discord.client.channels.fetch(this.app.config.discord.gcchannel).then(channel => {
+      this.app.discord.client.channels.fetch(this.app.config.discord.joinleavechannel).then(channel => {
         if (title == "Join Request"){
           channel.send({
             embeds: [
