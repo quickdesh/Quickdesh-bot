@@ -146,13 +146,13 @@ class MinecraftManager extends CommunicationBridge {
 			bot.chat(`/p leave`)
 			console.log(`Log > Left the party`)
 			partystatus = 'disbanded'
-			waity(0.1)
+			waity(0.2)
 		}
-		function returntohub() {
-			bot.chat(`/skyblock`)
-			waity(0.1)
-			bot.chat("/is")
-			console.log(`Log > Returning to Skyblock Island`)
+		function returntohouse() {
+			bot.chat(`/main`)
+			waity(0.2)
+			bot.chat("/home")
+			console.log(`Log > Returning to housing`)
 		}
 
 		bot.on('chat:FRIEND_LIST',([[current_page,final_page]]) =>{
@@ -168,14 +168,12 @@ class MinecraftManager extends CommunicationBridge {
 
 		bot.on('chat:YOU_ARE_AFK',() => {
 			console.log("LIMBO")
-			bot.chat(`/lobby`)
-			waity(0.2)
-			returntohub()
+			returntohouse()
 		})
 		bot.on('chat:NO_JOIN_DUNGEON',() => {
 			waity(0.1)
 			leaveparty()
-			returntohub()
+			returntohouse()
 		})
 		
 		bot.on('chat:PARTY_WARP', ([[rank, username]]) => {
@@ -188,7 +186,7 @@ class MinecraftManager extends CommunicationBridge {
 			waity(0.1)
 			console.log(`Log > ${username} tried to warp the party`)
 			leaveparty()
-			returntohub()
+			returntohouse()
 		})
 		
 		
@@ -238,8 +236,8 @@ class MinecraftManager extends CommunicationBridge {
 
 		bot.on('spawn', () => {
 			if (a==0){
-				waity(0.1)
-				returntohub()
+				waity(0.2)
+				returntohouse()
 				a++
 			}
 			

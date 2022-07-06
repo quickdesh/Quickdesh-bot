@@ -108,7 +108,7 @@ class MessageHandler {
 	}
 
 
-async	stripDiscordContent(message) {
+	async stripDiscordContent(message) {
 		var new_cont_arr=message.content.split("\n")
 		var new_content
 		if (new_cont_arr.length==3){
@@ -117,53 +117,55 @@ async	stripDiscordContent(message) {
 		else{
 			new_content = new_cont_arr[0]
 		}
-		if (new_content.includes("<@") && new_content.includes(">")){
-			var new_at=''
-			var at=new_content.split("<@")[1].split(">")[0].replace("!","").replace("&","")
+		var word = new_content.split(" ")
 
-			return message.guild.members.fetch(at).then( member =>{
-				if (member.nickname == "Indian"){
-					new_at="Quickdev"
-					
-				}
-				else if(member.nickname == null){
-					new_at=member.user.username
-					
-				}
-				else{
-					new_at=member.nickname
-					
-				}
-			return new_content
-				.replace(/<@/g,`@${new_at}`)
-				.replace("@undefined","")
-				.replace(/(\d+){16}>/g, '')
-				.replace(/[#|!|&]{1,2}(\d+){16,}>/g, '\n') //@s
-				.replace(/<:\w+:(\d+){16,}>/g, '\n')
-				//.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '\n')//remove anything not letter,number,punctuation or seperator
-				.split('\n')
-				.map(part => {
-		 		 part = part.trim()
-  
-		 		 return part.length == 0 ? '' : part + ' '
-				})
-				.join('')
-				
-			})}
+		new_content =""
+		for(let i=0; i<word.length; i++){
 
-		
-			return new_content
-			.replace(/<[@|#|!|&]{1,2}(\d+){16,}>/g, '\n') //@s
-			.replace(/<:\w+:(\d+){16,}>/g, '\n')
-			//.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '\n')//remove anything not letter,number,punctuation or seperator
-			.split('\n')
-			.map(part => {
-			  part = part.trim()
-	  
-			  return part.length == 0 ? '' : part + ' '
-			})
-			.join('')
+			for(let j=0; j<1; j++){
+
+				if (word[i].match(/<[@|#|!|&]{1,2}(\d+){16,}>/g)){
+
+					if(word[i].includes("@")){
+
+						var at=word[i].split("<@")[1].split(">")[0].replace("!","")
+
+						if (!word[i].includes("&")){
+
+							return word[i] += message.guild.members.fetch(at).then( member =>{
+
+									if (member.nickname == "Indian"){
+										return "@Quickdev" 
+										
+									}
+									else if(member.nickname == null){
+										return "@" + member.user.username
+									}
+									else{
+										return "@" +member.nickname
+										
+									}
+								})
+							} else {
+								at = at.replace("&","")
+								return word[i] += message.guild.roles.fetch(at).then( role =>{
+									return "@" + role.name
+								})
+							}
+					}
+
+					else if(word[i].includes("#")){
+						var ch=word[i].split("<#")[1].split(">")[0]
+						return word[i] = message.guild.channels.fetch(ch).then(channel =>{
+							return "#" +channel.name
+						})
+					}
+				}
+			}
+			new_content += word[i] +" "
 		}
+		return new_content.trimEnd()
+	}
 			
 
 	 

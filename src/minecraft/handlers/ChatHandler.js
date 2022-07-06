@@ -37,7 +37,7 @@ class StateHandler extends EventHandler {
 		
 		const message = event.toString().trim()
 
-		if (message.indexOf("❤ ") == -1 && message.indexOf("✎Mana") == -1 && message.indexOf("Guild > ") == -1 && message.indexOf("Officer > ") == -1 && message.indexOf("To ") != 0 && message.indexOf("From ") != 0) console.log(message)
+		if (message.indexOf("❤ ") == -1 && message.indexOf("✎Mana") == -1 && message.indexOf("Guild > ") == -1 && message.indexOf("Officer > ") == -1 && message.indexOf("To ") != 0 && message.indexOf("From ") != 0 && message.indexOf("You are currently in Build Mode!") == -1 && message.indexOf("Use the Housing Menu to customize several things about your house!") == -1 && message.indexOf("New themes can be unlocked by opening Mystery Boxes!") == -1) console.log(message)
 
 		if (this.Guild_Name(message)) {
 			gname= ""
