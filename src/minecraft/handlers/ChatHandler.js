@@ -37,7 +37,21 @@ class StateHandler extends EventHandler {
 		
 		const message = event.toString().trim()
 
-		if (message.indexOf("❤ ") == -1 && message.indexOf("✎Mana") == -1 && message.indexOf("Guild > ") == -1 && message.indexOf("Officer > ") == -1 && message.indexOf("To ") != 0 && message.indexOf("From ") != 0 && message.indexOf("You are currently in Build Mode!") == -1 && message.indexOf("Use the Housing Menu to customize several things about your house!") == -1 && message.indexOf("New themes can be unlocked by opening Mystery Boxes!") == -1 && message.indexOf("Change your home's Visiting Rules to allow friends or anyone to visit it!") == -1 && message.indexOf("Punch players with your Nether Star to access player options for that player!") == -1 && message.indexOf("Typing /toggleborder or changing to Social Mode will hide the red border around your house.") == -1 && message.indexOf("Typing /toggletips will toggle these messages.") == -1) console.log(message)
+		if (message.indexOf("❤ ") == -1 && 
+		message.indexOf("✎Mana") == -1 && 
+		message.indexOf("Guild > ") == -1 && 
+		message.indexOf("Officer > ") == -1 && 
+		message.indexOf("To ") != 0 && 
+		message.indexOf("From ") != 0 && 
+		message.indexOf("You are currently in Build Mode!") == -1 &&
+		message.indexOf("Use the Housing Menu to customize several things about your house!") == -1 && 
+		message.indexOf("New themes can be unlocked by opening Mystery Boxes!") == -1 &&
+		message.indexOf("Change your home's Visiting Rules to allow friends or anyone to visit it!") == -1 && 
+		message.indexOf("Punch players with your Nether Star to access player options for that player!") == -1 && 
+		message.indexOf("Typing /toggleborder or changing to Social Mode will hide the red border around your house.") == -1 && 
+		message.indexOf("Typing /toggletips will toggle these messages.") == -1 && 
+		message.indexOf("[NPC] The Carpenter: I hope it wasn't too windy on your way here, Quickdesh! Come talk to me when you are ready!") == -1) 
+		console.log(message)
 
 		if (this.Guild_Name(message)) {
 			gname= ""
