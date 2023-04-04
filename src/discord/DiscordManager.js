@@ -88,7 +88,7 @@ class DiscordManager extends CommunicationBridge {
             embeds: [
                 {
                 description: message,
-                color: '6495ED',
+                hexColor: '6495ED',
                 timestamp: new Date(),
                 footer: {
                   text: guildRank,
@@ -188,7 +188,7 @@ class DiscordManager extends CommunicationBridge {
       channel.send({
         embeds: [
           {
-          color: color,
+          hexColor: color,
           description: message,
           }
         ]
@@ -203,7 +203,7 @@ class DiscordManager extends CommunicationBridge {
       channel.send({
         embeds: [
             {
-              color: color,
+              hexColor: color,
               author: {
                 name: title,
               },
@@ -221,7 +221,7 @@ class DiscordManager extends CommunicationBridge {
           channel.send({
             embeds: [
                 {
-                  color: color,
+                  hexColor: color,
                   author: {
                     name: title,
                   },
@@ -256,7 +256,7 @@ class DiscordManager extends CommunicationBridge {
         channel.send({
           embeds: [
               {
-                color: color,
+                hexColor: color,
                 author: {
                   name: title,
                 },
@@ -481,7 +481,7 @@ class DiscordManager extends CommunicationBridge {
           channel.send({
             embeds: [
               {
-                color: color,
+                hexColor: color,
                 timestamp: new Date(),
                 author: {
                   name: `${username} ${message}`,
@@ -504,7 +504,7 @@ class DiscordManager extends CommunicationBridge {
           avatarURL: `https://www.mc-heads.net/head/${username.replace(" ","")}`,
           embeds: [
             {
-              color: color,
+              hexColor: color,
               description: `${username} ${message}`,
             }
           ]
