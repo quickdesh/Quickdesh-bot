@@ -4,7 +4,7 @@ const StateHandler = require('./handlers/StateHandler')
 const MessageHandler = require('./handlers/MessageHandler')
 const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
-const { Embed,ButtonComponent,ActionRow } = require('discord.js')
+const { EmbedBuilder ,ButtonComponent,ActionRow } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -289,7 +289,7 @@ class DiscordManager extends CommunicationBridge {
 		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
 
 			if((guildMembers[guildMembers.length-1]=="") && (guildMembers.length==1)){
-				const embed1 = new Embed()
+				const embed1 = new EmbedBuilder()
 				.setTitle(`${name[1]}`)
   			.setColor(0x47F049)
 				.setTimestamp(Date.now())
@@ -303,7 +303,7 @@ class DiscordManager extends CommunicationBridge {
 				if(guildMembers[guildMembers.length-1]==""){
 					guildMembers.pop()
 				}
-				const embed2 = new Embed()
+				const embed2 = new EmbedBuilder()
 				.setTitle(`${name[1]}`)
 				.setColor(0x47F049)
 				.setTimestamp(Date.now())
@@ -341,7 +341,7 @@ class DiscordManager extends CommunicationBridge {
 
 		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
 
-			const embed = new Embed()
+			const embed = new EmbedBuilder()
 			.setTitle(`${name[1]}`)
   		.setColor(0x47F049)
 			.setTimestamp(Date.now())
@@ -410,7 +410,7 @@ class DiscordManager extends CommunicationBridge {
         MyDate[1]="December"
       }
 
-			const embed = new Embed()
+			const embed = new EmbedBuilder()
   		.setColor(0x47F049)
 			.setTimestamp(Date.now())
 			.setThumbnail(this.app.config.discord.thumbnail)
@@ -441,7 +441,7 @@ class DiscordManager extends CommunicationBridge {
           friends=friends+list[j][i]+"\n\n"}
         }
       }}
-			const embed = new Embed()
+			const embed = new EmbedBuilder()
 			.setTitle(`Friend List`)
   		.setColor(0x47F049)
 			.setTimestamp(Date.now())
