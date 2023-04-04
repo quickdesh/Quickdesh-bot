@@ -295,7 +295,7 @@ class DiscordManager extends CommunicationBridge {
 				.setTimestamp(Date.now())
 				.setFooter({ text : onlineMembers })
 				.setThumbnail(this.app.config.discord.thumbnail)
-				.addField("No one is online at the moment","⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾",false)
+				.addFields("No one is online at the moment","⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾",false)
 				channel.send({ embeds: [embed1] })
 
 			}else{
@@ -312,9 +312,9 @@ class DiscordManager extends CommunicationBridge {
 				for (let i = 0; i <guildRanks.length; i++){
           if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
 
-          // if (guildMembers.length == 2 && i == 1) embed2.addField("<:blank:983742482351263744>","<:blank:983742482351263744>",false)
+          // if (guildMembers.length == 2 && i == 1) embed2.addFields("<:blank:983742482351263744>","<:blank:983742482351263744>",false)
 
-					embed2.addField(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
+					embed2.addFields(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
                                       .replace(/\●  /g,'● ')  // Fix spacing between player names
                                       .replace(/_/g,"\\_")  // Fix underscores causing italics
                                       .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''),false)   // Remove Bot from embed
@@ -351,7 +351,7 @@ class DiscordManager extends CommunicationBridge {
 
         if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
 
-				embed.addField(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
+				embed.addFields(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
                                    .replace(/\●  /g,'● ')  // Fix spacing between player names
                                    .replace(/_/g,"\\_")  // Fix underscores causing italics
                                    .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''),false)   // Remove Bot from embed
@@ -414,8 +414,8 @@ class DiscordManager extends CommunicationBridge {
   		.setColor(0x47F049)
 			.setTimestamp(Date.now())
 			.setThumbnail(this.app.config.discord.thumbnail)
-			.addField("Rank", rank.replace("Rank: ",""),false)
-      .addField("Joined", `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`,false)
+			.addFields("Rank", rank.replace("Rank: ",""),false)
+      .addFields("Joined", `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`,false)
 
       const player_links = new ActionRow()
                                 .addComponents(
