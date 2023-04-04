@@ -295,7 +295,7 @@ class DiscordManager extends CommunicationBridge {
 				.setTimestamp(Date.now())
 				.setFooter({ text : onlineMembers })
 				.setThumbnail(this.app.config.discord.thumbnail)
-				.addFields("No one is online at the moment","⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾",false)
+				.addFields({name: "No one is online at the moment", value:  "⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾", inline: false})
 				channel.send({ embeds: [embed1] })
 
 			}else{
@@ -314,10 +314,10 @@ class DiscordManager extends CommunicationBridge {
 
           // if (guildMembers.length == 2 && i == 1) embed2.addFields("<:blank:983742482351263744>","<:blank:983742482351263744>",false)
 
-					embed2.addFields(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
+					embed2.addFields({ name: guildRanks[i], value: guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
                                       .replace(/\●  /g,'● ')  // Fix spacing between player names
                                       .replace(/_/g,"\\_")  // Fix underscores causing italics
-                                      .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''),false)   // Remove Bot from embed
+                                      .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''), inline: false})   // Remove Bot from embed
         }
         channel.send({ embeds: [embed2] })
 				
@@ -351,10 +351,10 @@ class DiscordManager extends CommunicationBridge {
 
         if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
 
-				embed.addFields(guildRanks[i], guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
+				embed.addFields({ name: guildRanks[i], value: guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
                                    .replace(/\●  /g,'● ')  // Fix spacing between player names
                                    .replace(/_/g,"\\_")  // Fix underscores causing italics
-                                   .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''),false)   // Remove Bot from embed
+                                   .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''), inline: false})   // Remove Bot from embed
 			}
 			
 			channel.send({ embeds: [embed] })
@@ -414,8 +414,8 @@ class DiscordManager extends CommunicationBridge {
   		.setColor(0x47F049)
 			.setTimestamp(Date.now())
 			.setThumbnail(this.app.config.discord.thumbnail)
-			.addFields("Rank", rank.replace("Rank: ",""),false)
-      .addFields("Joined", `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`,false)
+			.addFields({ name: "Rank", value: rank.replace("Rank: ",""), inline: false})
+      .addFields({ name: "Joined", value: `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`, inline: false})
 
       const player_links = new ActionRow()
                                 .addComponents(
