@@ -23,6 +23,8 @@ class DiscordManager extends CommunicationBridge {
         Discord.GatewayIntentBits.GuildMessages,
         Discord.GatewayIntentBits.GuildWebhooks,
         Discord.GatewayIntentBits.GuildEmojisAndStickers,
+        Discord.GatewayIntentBits.MessageContent,
+        Discord.GatewayIntentBits.DirectMessages,
       ],
       allowedMentions: {
         parse: [

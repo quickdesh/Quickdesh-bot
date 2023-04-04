@@ -20,8 +20,6 @@ class MessageHandler {
 
 	async onMessage(message) {
 
-		console.log(`HELLO`)
-
 		if(message.guildId == this.discord.app.config.discord.guildid){
 
 			if (message.content.toLowerCase().indexOf("bean") != -1) message.react("986216693024051220")
