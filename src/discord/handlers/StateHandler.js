@@ -23,7 +23,7 @@ class StateHandler {
 		  embeds: [
 			{
 			  author: { name: `Chat Bridge is Online` },
-			  hexColor: '#47F049'
+			  color: 0x47F049
 			}
 		  ]
 		}).then(async sent => {await EmbedHandler.addit(`Bridge Online` , sent.id)})
@@ -41,7 +41,7 @@ class StateHandler {
 		  embeds: [
 			{
 			  author: { name: `Chat Bridge is Offline` },
-			  hexColor: '#F04947'
+			  color: 0xF04947
 			}
 		  ]
 		}).then(async sent => {await EmbedHandler.addit(`Bridge Offline` , sent.id)}).then(() => { process.exit() })

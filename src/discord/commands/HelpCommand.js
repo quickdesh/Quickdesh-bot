@@ -40,7 +40,7 @@ class HelpCommand extends DiscordCommand {
               ].join('\n'),
             }
           ],
-          color: message.guild.me.displayHexColor,
+          color: 0xFFFFFF,
           footer: {
             text: 'Made by Quickdev/Indian'
           },

@@ -88,7 +88,7 @@ class DiscordManager extends CommunicationBridge {
             embeds: [
                 {
                 description: message,
-                hexColor: '6495ED',
+                color: 0x6495ED,
                 timestamp: new Date(),
                 footer: {
                   text: guildRank,
@@ -188,7 +188,7 @@ class DiscordManager extends CommunicationBridge {
       channel.send({
         embeds: [
           {
-          hexColor: color,
+          color: color,
           description: message,
           }
         ]
@@ -203,7 +203,7 @@ class DiscordManager extends CommunicationBridge {
       channel.send({
         embeds: [
             {
-              hexColor: color,
+              color: color,
               author: {
                 name: title,
               },
@@ -221,7 +221,7 @@ class DiscordManager extends CommunicationBridge {
           channel.send({
             embeds: [
                 {
-                  hexColor: color,
+                  color: color,
                   author: {
                     name: title,
                   },
@@ -256,7 +256,7 @@ class DiscordManager extends CommunicationBridge {
         channel.send({
           embeds: [
               {
-                hexColor: color,
+                color: color,
                 author: {
                   name: title,
                 },
@@ -289,7 +289,7 @@ class DiscordManager extends CommunicationBridge {
 			if((guildMembers[guildMembers.length-1]=="") && (guildMembers.length==1)){
 				const embed1 = new Embed()
 				.setTitle(`${name[1]}`)
-  			.setColor(`#47F049`)
+  			.setColor(0x47F049)
 				.setTimestamp(Date.now())
 				.setFooter({ text : onlineMembers })
 				.setThumbnail(this.app.config.discord.thumbnail)
@@ -303,7 +303,7 @@ class DiscordManager extends CommunicationBridge {
 				}
 				const embed2 = new Embed()
 				.setTitle(`${name[1]}`)
-				.setColor(`#47F049`)
+				.setColor(0x47F049)
 				.setTimestamp(Date.now())
 				.setFooter({ text : onlineMembers } )
 				.setThumbnail(this.app.config.discord.thumbnail)
@@ -341,7 +341,7 @@ class DiscordManager extends CommunicationBridge {
 
 			const embed = new Embed()
 			.setTitle(`${name[1]}`)
-  		.setColor(`#47F049`)
+  		.setColor(0x47F049)
 			.setTimestamp(Date.now())
       .setFooter({ text: totalMembers })
 			.setThumbnail(this.app.config.discord.thumbnail)
@@ -409,7 +409,7 @@ class DiscordManager extends CommunicationBridge {
       }
 
 			const embed = new Embed()
-  		.setColor(`#47F049`)
+  		.setColor(0x47F049)
 			.setTimestamp(Date.now())
 			.setThumbnail(this.app.config.discord.thumbnail)
 			.addField("Rank", rank.replace("Rank: ",""),false)
@@ -441,7 +441,7 @@ class DiscordManager extends CommunicationBridge {
       }}
 			const embed = new Embed()
 			.setTitle(`Friend List`)
-  		.setColor(`#47F049`)
+  		.setColor(0x47F049)
 			.setTimestamp(Date.now())
       .setDescription(`${friends}`)
 			
@@ -481,7 +481,7 @@ class DiscordManager extends CommunicationBridge {
           channel.send({
             embeds: [
               {
-                hexColor: color,
+                color: color,
                 timestamp: new Date(),
                 author: {
                   name: `${username} ${message}`,
@@ -504,7 +504,7 @@ class DiscordManager extends CommunicationBridge {
           avatarURL: `https://www.mc-heads.net/head/${username.replace(" ","")}`,
           embeds: [
             {
-              hexColor: color,
+              color: color,
               description: `${username} ${message}`,
             }
           ]
