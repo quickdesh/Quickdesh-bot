@@ -12,4 +12,4 @@ app
     console.error(err)
   })
 
-  // cd OneDrive/Documents/GitHub/Quickdesh-bot
+  // cd VSCode/Quickdesh-bot

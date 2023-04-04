@@ -4,7 +4,7 @@ const StateHandler = require('./handlers/StateHandler')
 const MessageHandler = require('./handlers/MessageHandler')
 const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
-const { MessageEmbed,MessageButton,MessageActionRow } = require('discord.js')
+const { Embed,ButtonComponent,ActionRow } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -19,10 +19,10 @@ class DiscordManager extends CommunicationBridge {
   connect() {
     this.client = new Discord.Client({
       intents: [
-        "GUILDS",
-        "GUILD_MESSAGES",
-        "GUILD_WEBHOOKS",
-        "GUILD_EMOJIS_AND_STICKERS"
+        Discord.GatewayIntentBits.Guilds,
+        Discord.GatewayIntentBits.GuildMessages,
+        Discord.GatewayIntentBits.GuildWebhooks,
+        Discord.GatewayIntentBits.GuildEmojisAndStickers,
       ],
       allowedMentions: {
         parse: [
@@ -237,14 +237,14 @@ class DiscordManager extends CommunicationBridge {
             let data = await response.text()
             const player_uuid = JSON.parse(data).data.player.id.toString()
             if(title == "Join Request"){
-              const accept_reject = new MessageActionRow()
+              const accept_reject = new ActionRow()
                               .addComponents(
-                              new MessageButton().setCustomId(`acceptjoinee ${player}`).setLabel(`Accept`).setEmoji("<:qyes:933344650771697754>").setStyle("SECONDARY"),
-                              new MessageButton().setCustomId(`rejectjoinee ${player}`).setLabel(`Reject`).setEmoji("<:qnon:933344718790750229>").setStyle("SECONDARY"))
-              const player_links = new MessageActionRow()
+                              new ButtonComponent().setCustomId(`acceptjoinee ${player}`).setLabel(`Accept`).setEmoji("<:qyes:933344650771697754>").setStyle("SECONDARY"),
+                              new ButtonComponent().setCustomId(`rejectjoinee ${player}`).setLabel(`Reject`).setEmoji("<:qnon:933344718790750229>").setStyle("SECONDARY"))
+              const player_links = new ActionRow()
                                   .addComponents(
-                                    new MessageButton().setLabel(`Namemc`).setEmoji("<:qnamemc:933348124175511653>").setStyle("LINK").setURL(`https://namemc.com/profile/${player_uuid}`),
-                                    new MessageButton().setLabel(`Skycrypt`).setEmoji("<:qskycrypt:933347115030175865>").setStyle("LINK").setURL(`https://sky.shiiyu.moe/stats/${player}`)
+                                    new ButtonComponent().setLabel(`Namemc`).setEmoji("<:qnamemc:933348124175511653>").setStyle("LINK").setURL(`https://namemc.com/profile/${player_uuid}`),
+                                    new ButtonComponent().setLabel(`Skycrypt`).setEmoji("<:qskycrypt:933347115030175865>").setStyle("LINK").setURL(`https://sky.shiiyu.moe/stats/${player}`)
                                     )
                                   
               message.edit({ embeds: message.embeds,components: [accept_reject,player_links]})
@@ -287,7 +287,7 @@ class DiscordManager extends CommunicationBridge {
 		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
 
 			if((guildMembers[guildMembers.length-1]=="") && (guildMembers.length==1)){
-				const embed1 = new MessageEmbed()
+				const embed1 = new Embed()
 				.setTitle(`${name[1]}`)
   			.setColor(`#47F049`)
 				.setTimestamp(Date.now())
@@ -301,7 +301,7 @@ class DiscordManager extends CommunicationBridge {
 				if(guildMembers[guildMembers.length-1]==""){
 					guildMembers.pop()
 				}
-				const embed2 = new MessageEmbed()
+				const embed2 = new Embed()
 				.setTitle(`${name[1]}`)
 				.setColor(`#47F049`)
 				.setTimestamp(Date.now())
@@ -339,7 +339,7 @@ class DiscordManager extends CommunicationBridge {
 
 		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
 
-			const embed = new MessageEmbed()
+			const embed = new Embed()
 			.setTitle(`${name[1]}`)
   		.setColor(`#47F049`)
 			.setTimestamp(Date.now())
@@ -408,12 +408,18 @@ class DiscordManager extends CommunicationBridge {
         MyDate[1]="December"
       }
 
-			const embed = new MessageEmbed()
+			const embed = new Embed()
   		.setColor(`#47F049`)
 			.setTimestamp(Date.now())
 			.setThumbnail(this.app.config.discord.thumbnail)
 			.addField("Rank", rank.replace("Rank: ",""),false)
       .addField("Joined", `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`,false)
+
+      const player_links = new ActionRow()
+                                .addComponents(
+                                new ButtonComponent().setLabel(`Namemc`).setEmoji("<:qnamemc:933348124175511653>").setStyle("LINK").setURL(`https://namemc.com/profile/${player_uuid}`),
+                                new ButtonComponent().setLabel(`Skycrypt`).setEmoji("<:qskycrypt:933347115030175865>").setStyle("LINK").setURL(`https://sky.shiiyu.moe/stats/${player}`)
+                                )
 
 			channel.send({ embeds: [embed] })
 		})}
@@ -433,7 +439,7 @@ class DiscordManager extends CommunicationBridge {
           friends=friends+list[j][i]+"\n\n"}
         }
       }}
-			const embed = new MessageEmbed()
+			const embed = new Embed()
 			.setTitle(`Friend List`)
   		.setColor(`#47F049`)
 			.setTimestamp(Date.now())
