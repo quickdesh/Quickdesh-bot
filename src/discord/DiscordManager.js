@@ -491,16 +491,16 @@ class DiscordManager extends CommunicationBridge {
                 }
               }
             ]
-          }).then(async sent => {await EmbedHandler.addit(`${username} ${message}` , sent.id)})
+          }) // .then(async sent => {await EmbedHandler.addit(`${username} ${message}` , sent.id)})
         })
         break
 
       case 'webhook':
-        if (EmbedHandler.includes(`${username} ${message}`) == true){
-          this.app.discord.client.channels.fetch(this.app.config.discord.gcchannel).then(async channel => {
-            await channel.messages.fetch(await EmbedHandler.get(`${username} ${message}`)).then( async message => {message.delete()})
-          })
-        }
+        // if (EmbedHandler.includes(`${username} ${message}`) == true){
+        //   this.app.discord.client.channels.fetch(this.app.config.discord.gcchannel).then(async channel => {
+        //     await channel.messages.fetch(await EmbedHandler.get(`${username} ${message}`)).then( async message => {message.delete()})
+        //   })
+        // }
         this.app.discord.gcwebhook.send({
           username: username,
           avatarURL: `https://www.mc-heads.net/head/${username.replace(" ","")}`,
@@ -510,7 +510,7 @@ class DiscordManager extends CommunicationBridge {
               description: `${username} ${message}`,
             }
           ]
-        }).then(async sent => {await EmbedHandler.addit(`${username} ${message}` , sent.id)})
+        }) // .then(async sent => {await EmbedHandler.addit(`${username} ${message}` , sent.id)})
         break
 
       default:
