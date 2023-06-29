@@ -4,7 +4,7 @@ const StateHandler = require('./handlers/StateHandler')
 const MessageHandler = require('./handlers/MessageHandler')
 const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
-const { EmbedBuilder ,ButtonComponent,ActionRow } = require('discord.js')
+const { EmbedBuilder, ButtonStyle, ButtonComponent, ActionRow } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -241,12 +241,12 @@ class DiscordManager extends CommunicationBridge {
             if(title == "Join Request"){
               const accept_reject = new ActionRow()
                               .addComponents(
-                              new ButtonComponent().setCustomId(`acceptjoinee ${player}`).setLabel(`Accept`).setEmoji("<:qyes:933344650771697754>").setStyle("SECONDARY"),
-                              new ButtonComponent().setCustomId(`rejectjoinee ${player}`).setLabel(`Reject`).setEmoji("<:qnon:933344718790750229>").setStyle("SECONDARY"))
+                              new ButtonComponent().setCustomId(`acceptjoinee ${player}`).setLabel(`Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ButtonStyle.Secondary),
+                              new ButtonComponent().setCustomId(`rejectjoinee ${player}`).setLabel(`Reject`).setEmoji({ name: "qnon", id: "933344718790750229" }).setStyle(ButtonStyle.Secondary))
               const player_links = new ActionRow()
                                   .addComponents(
-                                    new ButtonComponent().setLabel(`Namemc`).setEmoji("<:qnamemc:933348124175511653>").setStyle("LINK").setURL(`https://namemc.com/profile/${player_uuid}`),
-                                    new ButtonComponent().setLabel(`Skycrypt`).setEmoji("<:qskycrypt:933347115030175865>").setStyle("LINK").setURL(`https://sky.shiiyu.moe/stats/${player}`)
+                                    new ButtonComponent().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${player_uuid}`),
+                                    new ButtonComponent().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${player}`)
                                     )
                                   
               message.edit({ embeds: message.embeds,components: [accept_reject,player_links]})
@@ -419,8 +419,8 @@ class DiscordManager extends CommunicationBridge {
 
       const player_links = new ActionRow()
                                 .addComponents(
-                                new ButtonComponent().setLabel(`Namemc`).setEmoji("<:qnamemc:933348124175511653>").setStyle("LINK").setURL(`https://namemc.com/profile/${player_uuid}`),
-                                new ButtonComponent().setLabel(`Skycrypt`).setEmoji("<:qskycrypt:933347115030175865>").setStyle("LINK").setURL(`https://sky.shiiyu.moe/stats/${player}`)
+                                new ButtonComponent().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${player_uuid}`),
+                                new ButtonComponent().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${player}`)
                                 )
 
 			channel.send({ embeds: [embed] })
