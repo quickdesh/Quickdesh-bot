@@ -484,7 +484,7 @@ class DiscordManager extends CommunicationBridge {
                 color: color,
                 timestamp: new Date(),
                 author: {
-                  name: `${username} ${message}`,
+                  name: `<:egg_right:1178195628615028776> ${username} ${message}`,
                   icon_url: `https://www.mc-heads.net/head/${username.replace(" ","")}`,
                 }
               }
@@ -505,7 +505,7 @@ class DiscordManager extends CommunicationBridge {
           embeds: [
             {
               color: color,
-              description: `${username} ${message}`,
+              description: `<:egg_right:1178195628615028776> ${username} ${message}`,
             }
           ]
         }) // .then(async sent => {await EmbedHandler.addit(`${username} ${message}` , sent.id)})

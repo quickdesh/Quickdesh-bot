@@ -140,13 +140,13 @@ class StateHandler extends EventHandler {
 		if (this.isLoginMessage(message)) {
 			let user = message.split('>')[1].trim().split('joined.')[0].trim()
 	  
-			return this.minecraft.broadcastPlayerToggle({ username: user, message: `joined.`, color: 0x47F049 })
+			return this.minecraft.broadcastPlayerToggle({ username: user, message: `hath bestowed upon us the radiance of their presence!`, color: 0x47F049 })
 		  }
 	  
 		  if (this.isLogoutMessage(message)) {
 			let user = message.split('>')[1].trim().split('left.')[0].trim()
 	  
-			return this.minecraft.broadcastPlayerToggle({ username: user, message: `left.`, color: 0xF04947 })
+			return this.minecraft.broadcastPlayerToggle({ username: user, message: `hath departed, leaving behind a void in our midst!`, color: 0xF04947 })
 		  }
 		
 		  if (this.isFriend(message)) {
