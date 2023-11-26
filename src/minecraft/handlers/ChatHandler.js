@@ -139,14 +139,46 @@ class StateHandler extends EventHandler {
 		
 		if (this.isLoginMessage(message)) {
 			let user = message.split('>')[1].trim().split('joined.')[0].trim()
+
+			let join_array = [
+				"hath bestowed upon us the radiance of their presence!", 
+				"has arrived!", 
+				"logged on!", 
+				"awoke from their deep slumber!",
+				"has decided to play on Hypixel!",
+				"is ready to RIP and TEAR!",
+				"enthusiastically extends a warm and hearty greeting to everyone!",
+				":)!",
+				"has breached the firewalls and is currently materialising somehwere near you!",
+				"joined the party!"
+			]
+
+			let num = Math.floor(Math.random() * join_array.length)
 	  
-			return this.minecraft.broadcastPlayerToggle({ username: user, message: `hath bestowed upon us the radiance of their presence!`, color: 0x47F049 })
+			return this.minecraft.broadcastPlayerToggle({ username: user, message: join_array[num], color: 0x47F049 })
 		  }
 	  
 		  if (this.isLogoutMessage(message)) {
 			let user = message.split('>')[1].trim().split('left.')[0].trim()
+
+			
+
+			let leave_array = [
+				"hath withdrawn, leaving behind a void in our midst!", 
+				"has departed!", 
+				"logged off!", 
+				"has gone into a deep slumber!",
+				"has decided to go and touch grass!",
+				"concludes that it is done!",
+				"grudgingly bids a melancholic and bittersweet farewell to everyone!",
+				":(!",
+				"has reinforced the firewalls and is presently dematerializing from your vicinity!",
+				"left the party!"
+			]
+
+			let num = Math.floor(Math.random() * leave_array.length)
 	  
-			return this.minecraft.broadcastPlayerToggle({ username: user, message: `hath departed, leaving behind a void in our midst!`, color: 0xF04947 })
+			return this.minecraft.broadcastPlayerToggle({ username: user, message: leave_array[num], color: 0xF04947 })
 		  }
 		
 		  if (this.isFriend(message)) {
