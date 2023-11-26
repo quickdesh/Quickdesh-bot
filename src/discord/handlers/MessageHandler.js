@@ -82,7 +82,7 @@ class MessageHandler {
 
 			const reference = await message.channel.messages.fetch(message.reference.messageId)
 
-			return this.stripDiscordContent(reference).toString().slice(0, 10) + `${this.stripDiscordContent > 10 ? "..." : ""}`;
+			return this.stripDiscordContent(reference, true)
 			
 		} catch (e) {
 			return null
@@ -108,7 +108,7 @@ class MessageHandler {
 	}
 
 
-	async stripDiscordContent(message) {
+	async stripDiscordContent(message, reply = false) {
 		var new_cont_arr=message.content.split("\n")
 		var new_content
 		if (new_cont_arr.length==3){
@@ -164,6 +164,11 @@ class MessageHandler {
 			}
 			new_content += word[i] +" "
 		}
+
+		if (reply == true) {
+			new_content.slice(0, 10) + `${this.stripDiscordContent > 10 ? "..." : ""}`
+		}
+
 		return new_content.trimEnd()
 	}
 			
