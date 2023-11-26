@@ -82,7 +82,11 @@ class MessageHandler {
 
 			const reference = await message.channel.messages.fetch(message.reference.messageId)
 
-			return this.stripDiscordContent(reference)
+			let msg = this.stripDiscordContent(reference).toString()
+
+			msg = msg.slice(0, 10) + `${msg.length > 10 ? "..." : ""}`
+
+			return msg;
 			
 		} catch (e) {
 			return null

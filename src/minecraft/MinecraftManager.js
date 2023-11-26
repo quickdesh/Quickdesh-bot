@@ -254,6 +254,7 @@ class MinecraftManager extends CommunicationBridge {
 			var waitTill = new Date(new Date().getTime() + seconds * 1000)
 			while (waitTill > new Date()) {}
 		}
+
 		if(Attachmsg == undefined){
 
 			message=message.replace("ez","e z")
@@ -283,7 +284,7 @@ class MinecraftManager extends CommunicationBridge {
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Guild')
-				this.bot.chat(`/gc ${replyingTo ? `${username} replied to ${replyingTo}'s message, which said ( ${repliedTomsg} ) with:` : `${username}:`} ${message}`)
+				this.bot.chat(`/gc ${replyingTo ? `${username}: >> ${replyingTo}: ${repliedTomsg} <<:` : `${username}:`} ${message}`)
 			}
 		
 	
