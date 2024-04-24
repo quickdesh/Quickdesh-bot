@@ -284,7 +284,7 @@ class MinecraftManager extends CommunicationBridge {
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Guild')
-				this.bot.chat(`/gc ${replyingTo ? `${username} replied to >> ${replyingTo}: ${repliedTomsg} <<:` : `${username}:`} ${message}`)
+				this.bot.chat(`/gc ${replyingTo ? `${username} replied to >> ${replyingTo}: ${repliedTomsg} << with:` : `${username}:`} ${message}`)
 			}
 		
 	

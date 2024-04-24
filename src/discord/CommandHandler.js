@@ -31,7 +31,7 @@ class CommandHandler {
       return false
     }
 
-    if ((admin_command_list.includes(command.name) && !this.isOwner(message.author) && !this.isCommander(message.author))) {
+    if ((admin_command_list.includes(command.name) && (!this.isOwner(message.author) || !this.isCommander(message.author)))) {
       message.channel.send({
         embeds: [
           {
@@ -52,7 +52,7 @@ class CommandHandler {
   }
 
   isCommander(member) {
-    return this.discord.app.config.discord.commanderIds.includes(member.id)
+    return member.roles.cache.find(r => r.id == this.discord.app.config.discord.commandRole)
   }
 
   isOwner(member) {
