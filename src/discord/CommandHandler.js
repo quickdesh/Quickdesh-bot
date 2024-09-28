@@ -52,7 +52,7 @@ class CommandHandler {
   }
 
   isCommander(member) {
-    return member.roles.cache.find(r => r.id == this.discord.app.config.discord.commandRole)
+    return member.roles.cache.some(r => r.id === this.discord.app.config.discord.commandRole);
   }
 
   isOwner(member) {
