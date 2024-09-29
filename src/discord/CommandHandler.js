@@ -35,7 +35,7 @@ class CommandHandler {
       message.channel.send({
         embeds: [
           {
-            color: 'DC143C',
+            color: 0xDC143C,
             description: `You don't have permission to do that.`
           
           }
