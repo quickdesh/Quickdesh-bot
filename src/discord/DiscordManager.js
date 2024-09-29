@@ -362,8 +362,8 @@ class DiscordManager extends CommunicationBridge {
 
 	}
 
-  memberInformation({rank,joined,chatTypes}){
-		this.app.log.broadcast('Member Info', 'Command')
+  memberInformation({player,rank,joined,exp,chatTypes}){
+		this.app.log.broadcast('Member Info of ' + player, 'Command')
 
     var chatChannels = this.getChatChannels(chatTypes)
     
@@ -412,16 +412,19 @@ class DiscordManager extends CommunicationBridge {
 			const embed = new EmbedBuilder()
   		.setColor(0x47F049)
 			.setTimestamp(Date.now())
+      .setTitle(player)
 			.setThumbnail(this.app.config.discord.thumbnail)
 			.addFields({ name: "Rank", value: rank.replace("Rank: ",""), inline: false})
       .addFields({ name: "Joined", value: `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`, inline: false})
+      .addFields({ name: "Guild Exp Contributions", value: exp, inline: false})
 
+      let username = player.replace(/\[.+\]\s*/, '')
       const player_links = new ActionRowBuilder().addComponents(
-                                  new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${player_uuid}`),
-                                  new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${player}`)
+                                  new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${username}`),
+                                  new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${username}`)
                                 )
 
-			channel.send({ embeds: [embed] })
+			channel.send({ embeds: [embed], components:[player_links] })
 		})}
 	
 

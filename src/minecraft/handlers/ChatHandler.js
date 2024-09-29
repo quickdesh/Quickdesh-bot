@@ -7,11 +7,12 @@ var total=""
 var gm=""
 var gr=""
 var fl=[]
-var mem_guild=""
+var mem_exp=""
 var mem_name=""
 var mem_rank=""
 var mem_join=""
 var lineType="none"
+var isMemName=false
 
 var commandChatTypes = []
 
@@ -50,7 +51,8 @@ class StateHandler extends EventHandler {
 		message.indexOf("Punch players with your Nether Star to access player options for that player!") == -1 && 
 		message.indexOf("Typing /toggleborder or changing to Social Mode will hide the red border around your house.") == -1 && 
 		message.indexOf("Typing /toggletips will toggle these messages.") == -1 && 
-		message.indexOf("[NPC] The Carpenter: I hope it wasn't too windy on your way here, Quickdesh! Come talk to me when you are ready!") == -1) 
+		message.indexOf("[NPC] The Carpenter: I hope it wasn't too windy on your way here, Quickdesh! Come talk to me when you are ready!") == -1 &&
+		message.indexOf("New themes can be unlocked using Mystery Dust!") == -1) 
 		console.log(message)
 
 		if (this.Guild_Name(message)) {
@@ -90,7 +92,15 @@ class StateHandler extends EventHandler {
 			lineType="Guild_List"
 				
 		}
-
+		if (this.Guild_Name_Name(message)){
+			isMemName = true
+		}
+		if (this.Member_Name(message)){
+			if (!this.Guild_Name_Name(message)) {
+				isMemName = false
+				mem_name=message.trim()
+			}
+		}
 		if (this.Member_Rank(message)){
 			mem_rank=message
 		}
@@ -103,6 +113,10 @@ class StateHandler extends EventHandler {
 			
 			lineType="Member_Info"
 				
+		}
+
+		if (this.Member_Guild_Exp(message)) {
+			mem_exp += message.trim() + "\n"
 		}
 
 		if (this.isFriendList(message)){
@@ -126,7 +140,9 @@ class StateHandler extends EventHandler {
 
 			}else if(lineType=="Member_Info"){
 				lineType="none"
-				return this.minecraft.memberInformation({ rank: mem_rank, joined: mem_join, chatTypes: commandChatTypes})
+				let exp = mem_exp.trim()
+				mem_exp = ""
+				return this.minecraft.memberInformation({player: mem_name, rank: mem_rank, joined: mem_join, exp: exp, chatTypes: commandChatTypes})
 
 			}
 			
@@ -541,6 +557,12 @@ class StateHandler extends EventHandler {
 	Guild_members(message) {
 		return message.includes('●')
 	}
+	Guild_Name_Name(message) {
+		return message.includes(this.minecraft.app.config.discord.guildname)
+	}
+	Member_Name(message) {
+		return isMemName
+	}
 	Member_Rank(message) {
 		return message.includes("Rank: ")
 	}
@@ -550,6 +572,9 @@ class StateHandler extends EventHandler {
 
 	Member_Info(message) {
 		return message.includes("Guild Exp Contributions:")
+	}
+	Member_Guild_Exp(message) {
+		return message.trim().endsWith("Guild Experience")
 	}
 	Line(message) {
 		return message.startsWith("-----") && message.endsWith('-----')
