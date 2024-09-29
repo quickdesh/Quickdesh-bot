@@ -81,6 +81,9 @@ class MessageHandler {
 			if (!message.reference) return null
 
 			const reference = await message.channel.messages.fetch(message.reference.messageId)
+			if (reference.attachments.size > 0 && reference.content.length <= 0){
+				return "Discord attatchment"
+			}
 
 			return this.stripDiscordContent(reference, true)
 			
@@ -132,7 +135,7 @@ class MessageHandler {
 
 						if (!word[i].includes("&")){
 
-							return word[i] += message.guild.members.fetch(at).then( member =>{
+							word[i] = await message.guild.members.fetch(at).then( member =>{
 
 									if (member.nickname == "Indian"){
 										return "@Quickdev" 
@@ -142,13 +145,13 @@ class MessageHandler {
 										return "@" + member.user.username
 									}
 									else{
-										return "@" +member.nickname
+										return "@" + member.nickname
 										
 									}
 								})
 							} else {
 								at = at.replace("&","")
-								return word[i] += message.guild.roles.fetch(at).then( role =>{
+								word[i] = await message.guild.roles.fetch(at).then( role =>{
 									return "@" + role.name
 								})
 							}
@@ -156,17 +159,17 @@ class MessageHandler {
 
 					else if(word[i].includes("#")){
 						var ch=word[i].split("<#")[1].split(">")[0]
-						return word[i] = message.guild.channels.fetch(ch).then(channel =>{
-							return "#" +channel.name
+						word[i] = await message.guild.channels.fetch(ch).then(channel =>{
+							return "#" + channel.name
 						})
 					}
 				}
 			}
-			new_content += word[i] +" "
+			new_content += word[i] + " "
 		}
 
 		if (reply == true) {
-			new_content.slice(0, 10) + `${this.stripDiscordContent > 10 ? "..." : ""}`
+			new_content = new_content.slice(0, 15) + `${new_content.length > 15 ? "..." : ""}`
 		}
 
 		return new_content.trimEnd()
