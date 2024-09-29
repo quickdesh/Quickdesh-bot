@@ -279,12 +279,12 @@ class MinecraftManager extends CommunicationBridge {
 				waity(0.2)
 			}
 
-				this.bot.chat(`/gc ${username}: ${Attachmsg}`)
-				this.app.log.broadcast(`${username} sent an attachment`, 'Guild')
+				this.bot.chat(`/gc ${username} sent an attachment in Discord`)
+				this.app.log.broadcast(`${username} sent an attachment in Discord`, 'Guild')
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Guild')
-				this.bot.chat(`/gc ${replyingTo ? `${username} replied to >> ${replyingTo}: ${repliedTomsg} << with:` : `${username}:`} ${message}`)
+				this.bot.chat(`/gc ${replyingTo ? `${username} -> ${replyingTo} >> ${repliedTomsg} <<` : `${username}:`} ${message}`)
 			}
 		
 	
@@ -304,13 +304,13 @@ class MinecraftManager extends CommunicationBridge {
 				this.bot.chat(`/oc ${username}: ${message}`)
 				waity(0.2)
 			}
-				this.bot.chat(`/oc ${username}: ${Attachmsg}`)
-				this.app.log.broadcast(`${username} sent an attachment`, 'Officer')
+				this.bot.chat(`/oc ${username} sent an attachment in Discord`)
+				this.app.log.broadcast(`${username} sent an attachment in Discord`, 'Officer')
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Officer')
 			
-				this.bot.chat(`/oc ${replyingTo ? `${username} replied to ${replyingTo}'s message, which said ( ${repliedTomsg} ) with:` : `${username}:`} ${message}`)
+				this.bot.chat(`/oc  ${replyingTo ? `${username} -> ${replyingTo} "${repliedTomsg}" :` : `${username}:`} ${message}`)
 			}
 		}
 
