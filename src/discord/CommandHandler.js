@@ -31,7 +31,7 @@ class CommandHandler {
       return false
     }
 
-    if ((admin_command_list.includes(command.name) && (!this.isOwner(message.author) || !this.isCommander(message.author)))) {
+    if ((admin_command_list.includes(command.name) && (!this.isOwner(message) || !this.isCommander(message)))) {
       message.channel.send({
         embeds: [
           {
@@ -51,12 +51,13 @@ class CommandHandler {
     return true
   }
 
-  isCommander(member) {
+  async isCommander(message) {
+    const member = await message.guild.members.fetch(message.author.id);
     return member.roles.cache.some(r => r.id === this.discord.app.config.discord.commandRole);
   }
 
-  isOwner(member) {
-    return member.id == this.discord.app.config.discord.ownerId
+  isOwner(message) {
+    return message.author.id == this.discord.app.config.discord.ownerId
   }
 }
 
