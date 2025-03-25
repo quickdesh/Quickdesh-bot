@@ -15,7 +15,7 @@ class CommandHandler {
     }
   }
   
-  handle(message) {
+  async handle(message) {
     if (!message.content.startsWith(this.prefix)) {
       return false
     }
@@ -31,12 +31,9 @@ class CommandHandler {
       return false
     }
 
-    console.log(admin_command_list.includes(command.name))
-    console.log(!this.isOwner(message))
-    console.log(!this.isCommander(message))
-    console.log((!this.isOwner(message) || !this.isCommander(message)))
+    let isCommander = await this.isCommander(message)
 
-    if ((admin_command_list.includes(command.name) && (!this.isOwner(message) && !this.isCommander(message)))) {
+    if ((admin_command_list.includes(command.name) && (!this.isOwner(message) && !isCommander))) {
       message.channel.send({
         embeds: [
           {
@@ -58,8 +55,6 @@ class CommandHandler {
 
   async isCommander(message) {
     const member = await message.guild.members.fetch(message.author.id, { force: true });
-    console.log("Roles of the member:", member.roles.cache.map(r => r.id));
-    console.log("Command roles:", this.discord.app.config.discord.commandRoles);
     return member.roles.cache.some(r => this.discord.app.config.discord.commandRoles.includes(r.id));
   }
 
