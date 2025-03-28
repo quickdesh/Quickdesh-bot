@@ -34,7 +34,7 @@ class MinecraftManager extends CommunicationBridge {
 			port: this.app.config.server.port,
 			username: this.app.config.minecraft.username,
 			password: this.app.config.minecraft.password,
-			version: '1.12.2',
+			version: '1.8.9',
 			auth: this.app.config.minecraft.accountType,
 			logErrors: true,
 			defaultChatPatterns: false,

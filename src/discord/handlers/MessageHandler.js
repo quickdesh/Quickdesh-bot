@@ -28,8 +28,10 @@ class MessageHandler {
 		if (!this.shouldBroadcastMessage(message)) {
 			return
 		}
+
+		let isCommand = await this.command.handle(message)
 	
-		if (this.command.handle(message)) {
+		if (isCommand) {
 			return
 		}
 	
