@@ -139,7 +139,7 @@ class StateHandler extends EventHandler {
 			if(lineType=="Guild_List"){
 				lineType="none"
 				LogHandler.updateGuildList(gr, gm, forceFullGuildRefresh)
-				setforceFullGuildRefresh(false)
+				this.setforceFullGuildRefresh(false)
 				return this.minecraft.guildList({title : gname, g1 : gr, g2 : gm, mem : total, chatTypes: commandChatTypes})
 			
 			}else if(lineType=="Guild_Online"){
