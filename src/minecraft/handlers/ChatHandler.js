@@ -353,9 +353,10 @@ class StateHandler extends EventHandler {
 		}
 
 		if (this.isBlockedMessage(message)) {
-			let blockedMsg = message.match(/".+"/g)[0].slice(1, -1)
+			const matches = message.match(/"[^"]*?: ([^"]+)"/);
+			const blockedMsg = matches ? matches[1] : null;
 
-			return this.minecraft.broadcastCleanEmbed({ message: `Message \`${blockedMsg}\` blocked by Hypixel.`, color: 0xDC143C })
+			return this.minecraft.broadcastCleanEmbed({ message: `Message \`${blockedMsg}\` was blocked by Hypixel.`, color: 0xDC143C })
 		}
 
 		if (this.isRepeatMessage(message)) {
@@ -660,7 +661,7 @@ class StateHandler extends EventHandler {
 		return message.includes("'s rank was changed from") && !message.includes(':')
 	}
 	isBlockedMessage(message) {
-		return message.includes('We blocked your comment') && !message.includes(':')
+		return message.includes('We blocked your comment \"')
 	}
 
 	isRepeatMessage(message) {
