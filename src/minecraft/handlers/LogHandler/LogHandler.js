@@ -101,7 +101,7 @@ async function getPlayerDetailsByName(username, addIfMissing = false) {
     }
 
     if (addIfMissing) {
-        const newPlayerDetails = await logUtils.processInBatches([player])
+        const newPlayerDetails = await logUtils.processInBatches([username])
         updatePlayer(newPlayerDetails[playerUuidKey], {})
     }
 
