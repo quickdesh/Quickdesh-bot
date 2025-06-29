@@ -88,6 +88,7 @@ async function processInBatches(allUsernames) {
   }
 
   await wait(15_000)
+  console.log("Finishing pulling UUIDs from Mojang's API")
   return totalProfiles
 }
 
