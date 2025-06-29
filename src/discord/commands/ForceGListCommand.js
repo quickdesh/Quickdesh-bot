@@ -19,4 +19,4 @@ class ForceGListCommand extends DiscordCommand {
 	}
 }
 
-module.exports = GListCommand
+module.exports = ForceGListCommand
