@@ -22,7 +22,7 @@ const maxReconnectSessionMins = 5
 const maxReconnectSessionMillis = maxReconnectSessionMins * 60 * 1000
 
 let lastGuildUpdateTimestamp = 0
-const guildUpdateIntervalDays = 3
+const guildUpdateIntervalDays = 7
 const guildUpdateIntervalMins = guildUpdateIntervalDays * 24 * 60
 const guildUpdateIntervalMillis = guildUpdateIntervalMins * 60 * 1000
 
@@ -135,9 +135,9 @@ module.exports = {
         await updatePlayer(await getPlayerDetailsByName(player, true)[playerUuidKey], { [lastExitKey]: Date.now() })
         await saveLogsToFile()
     },
-    updateGuildList: async function(gr, gm, forceFullReset = false) {
+    updateGuildList: async function(gr, gm, forceFullRefresh = false) {
 
-        if (Date.now() - lastGuildUpdateTimestamp < guildUpdateIntervalMillis) {
+        if ((Date.now() - lastGuildUpdateTimestamp < guildUpdateIntervalMillis) && !forceFullRefresh) {
             return
         }
 
@@ -160,7 +160,7 @@ module.exports = {
             const usernamesToPull = []
             let pulledProfiles = []
 
-            if (forceFullReset) {
+            if (forceFullRefresh) {
                 pulledProfiles = await logUtils.processInBatches(usernames)
             } else {
                 for (const uname of usernames) {

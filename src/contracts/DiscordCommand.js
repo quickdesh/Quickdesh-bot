@@ -46,8 +46,11 @@ class DiscordCommand {
 	}
 
 	setChatTypes(chatTypes) {
-
 		this.chatHandler.setCommandChatTypes(chatTypes)
+	}
+
+	setforceFullGuildRefresh(forceFullRefresh = false) {
+		this.chatHandler.setforceFullGuildRefresh(forceFullRefresh)
 	}
 	
 

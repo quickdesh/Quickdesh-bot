@@ -16,6 +16,7 @@ var lineType="none"
 var isMemName=false
 
 var commandChatTypes = []
+var forceFullGuildRefresh = false
 
 class StateHandler extends EventHandler {
 	constructor(minecraft, command) {
@@ -27,6 +28,10 @@ class StateHandler extends EventHandler {
 
 	setCommandChatTypes(chatTypes){
 		commandChatTypes = chatTypes
+	}
+
+	setforceFullGuildRefresh(forceFullRefresh = false) {
+		forceFullGuildRefresh = forceFullRefresh
 	}
 
 	registerEvents(bot) {
@@ -133,7 +138,8 @@ class StateHandler extends EventHandler {
 		if(this.Line(message)){
 			if(lineType=="Guild_List"){
 				lineType="none"
-				LogHandler.updateGuildList(gr, gm)
+				LogHandler.updateGuildList(gr, gm, forceFullGuildRefresh)
+				setforceFullGuildRefresh(false)
 				return this.minecraft.guildList({title : gname, g1 : gr, g2 : gm, mem : total, chatTypes: commandChatTypes})
 			
 			}else if(lineType=="Guild_Online"){
