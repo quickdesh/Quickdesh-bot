@@ -44,16 +44,17 @@ class MinecraftManager extends CommunicationBridge {
 	startFragBot() {
 	
 		let partystatus = 'disbanded'
+		let runningcommand = 'none'
 		const bot = this.bot
 		
-		bot.addChatPatternSet('GUILD_JOIN_REQUEST', [/(?:\[(.+\+?\+?)\] )?(.+) has requested to join the Guild!/], {
+		bot.addChatPatternSet('GUILD_JOIN_REQUEST', [/(?:\[([^\]]+)\] )?([^:]+) has requested to join the Guild!/], {
 			parse: true,
 		})
 
-		bot.addChatPatternSet('GUILD_JOIN', [/^(?:\[(.+\+?\+?)\] )?(.+) joined the guild!/], {
+		bot.addChatPatternSet('GUILD_JOIN', [/^(?:\[([^\]]+)\] )?([^:]+) joined the guild!/], {
 			parse: true,
 		})
-		bot.addChatPatternSet('GUILD_LEAVE', [/^(?:\[(.+\+?\+?)\] )?(.+) left the guild!/], {
+		bot.addChatPatternSet('GUILD_LEAVE', [/^(?:\[([^\]]+)\] )?([^:]+) left the guild!/], {
 			parse: true,
 		})
 		bot.addChatPatternSet('FRIEND_LIST', [/Friends \(Page (\d+) of (\d+)\)/], {
@@ -73,7 +74,7 @@ class MinecraftManager extends CommunicationBridge {
 		bot.addChatPatternSet('YOU_ARE_AFK',[/You are AFK. Move around to return from AFK./],{
 			parse: true,
 		})
-		bot.addChatPatternSet('GUILD_MESSAGE', [/^Guild > (?:\[(.+\+?\+?)\] )?(.+): (.+)$/], {
+		bot.addChatPatternSet('GUILD_MESSAGE', [/^Guild > (?:\[([^\]]+)\] )?([^:]+): (.+)$/], {
 			parse: true,
 		})
 
@@ -97,37 +98,51 @@ class MinecraftManager extends CommunicationBridge {
 			parse: true,
 		})
 
-		bot.addChatPatternSet('PRIVATE_MESSAGE', [/^From (?:\[(.+\+?\+?)\] )?(.+): (.+)$/], {
+		bot.addChatPatternSet('PRIVATE_MESSAGE', [/^From (?:\[([^\]]+)\] )?([^:]+): (.+)$/], {
 			parse: true,
 		})
 
-		bot.addChatPatternSet('PARTY_ACCEPT', [/^(?:\[(.+\+?\+?)\] )?(.+) joined the party./], {
+		bot.addChatPatternSet('PARTY_ACCEPT', [/^(?:\[([^\]]+)\] )?([^:]+) joined the party./], {
+			parse: true,
+		})
+
+		bot.addChatPatternSet('PARTY_LEAVE', [/^You left the party./], {
 			parse: true,
 		})
 
 		bot.addChatPatternSet(
 			'PARTY_INVITE',
 			[
-				/(?:\[(.+\+?\+?)\] )?(.+) has invited you to join their party!/,
+				/(?:\[([^\]]+)\] )?([^:]+) has invited you to join their party!/,
 			],
 			{
 				parse: true,
 			}
 		)
 
-		bot.addChatPatternSet('PARTY_WARP', [/^Party Leader, (?:\[(.+\+?\+?)\] )?(.+), summoned you to their server./], {
+		bot.addChatPatternSet('PARTY_WARP', [/^Party Leader, (?:\[([^\]]+)\] )?([^:]+), summoned you to their server./], {
 			parse: true,
 		})
 
 		bot.addChatPatternSet(
 			'PARTY_DISBAND',
 			[
-				/(?:\[(.+\+?\+?)\] )?(.+) has disbanded the party!/,
+				/(?:\[([^\]]+)\] )?([^:]+) has disbanded the party!/,
 			],
 			{
 				parse: true,
 			}
 		)
+		bot.addChatPatternSet(
+			'PARTY_AUTO_DISBAND',
+			[
+				/The party was disbanded because all invites expired and the party was empty./,
+			],
+			{
+				parse: true,
+			}
+		)
+		
 		
 		bot.addChatPatternSet('Nothing_for_relog', [/^Nothing./], {
 			parse: true,
@@ -148,12 +163,24 @@ class MinecraftManager extends CommunicationBridge {
 			partystatus = 'disbanded'
 			waity(0.2)
 		}
+
 		function returntohouse() {
-			bot.chat(`/main`)
-			waity(0.2)
 			bot.chat("/home")
+			waity(0.2)
 			console.log(`Log > Returning to housing`)
 		}
+
+		function warpparty() {
+			bot.chat("/p warp")
+			waity(1)
+		}
+
+		function inviteannoyingplayer(annoyingplayer) {
+			bot.chat(`/main`)
+			waity(1)
+			bot.chat(`/p invite ${annoyingplayer}`)
+		}
+		
 
 		bot.on('chat:FRIEND_LIST',([[current_page,final_page]]) =>{
 			if (current_page==final_page){
@@ -188,8 +215,34 @@ class MinecraftManager extends CommunicationBridge {
 			leaveparty()
 			returntohouse()
 		})
-		
-		
+
+		bot.on('chat:PARTY_ACCEPT', ([[rank, username]]) => {
+			if (bot.username == username) {
+				return
+			}
+			if (!rank) {
+				rank = 'Non'
+			}
+			partystatus = "busy"
+			if (runningcommand == "warpannoyingplayer") {
+				waity(1)
+				warpparty()
+				console.log(`Log > Tried to warp ${username} to the hub`)
+				runningcommand = "none"
+				leaveparty()
+				returntohouse()
+			}
+			runningcommand = "none"
+		})
+
+		bot.on('chat:PARTY_LEAVE', () => {
+			partystatus = "disbanded"
+		})
+
+		bot.on('chat:PARTY_AUTO_DISBAND', () => {
+			partystatus = "disbanded"
+			runningcommand = "none"
+		})
 		
 
 	
@@ -197,7 +250,6 @@ class MinecraftManager extends CommunicationBridge {
 			if(bot.username == username){return}
 
 			if(!rank){rank = "Non"};
-			var time
 			
 			if(partystatus == "busy"){
 				console.log(`Log > [${rank}] ${username} sent me a party invite (in party)`)
@@ -221,7 +273,6 @@ class MinecraftManager extends CommunicationBridge {
 
 		bot.on('chat:PARTY_DISBAND', ([[rank, username]]) => {
 			leaveparty()
-
 		})
 
 
@@ -230,13 +281,33 @@ class MinecraftManager extends CommunicationBridge {
 			if (!rank) {
 				rank = 'Non'
 			}
+
+			const grank = username.match(/\[[^\]]+\]/)[0]
+
 			username = username.replace(/.(\[.+\])/, '') //removes roles
 							   .replace(/(:.*)/, '') //removes weird colon and username thing
-			})
+
+			const commandRegex = /^\+(.+) (.+)/i;
+
+			if (message && commandRegex.test(message)) {
+				const matches = message.match(commandRegex);
+				const command = matches[1];
+
+				if ((command == "w" || command == "warp") && grank != "[Raw]") {
+
+					const annoyingplayer = matches[2]
+					if (annoyingplayer != this.app.config.minecraft.lobbyHolder) {
+						runningcommand = "warpannoyingplayer"
+						inviteannoyingplayer(annoyingplayer)
+					}
+					
+				}
+			}
+		})
 
 		bot.on('spawn', () => {
 			if (a==0){
-				waity(0.2)
+				waity(2)
 				returntohouse()
 				a++
 			}
@@ -264,7 +335,8 @@ class MinecraftManager extends CommunicationBridge {
 		}
 
 		if(chatType=="guild"){
-
+			this.bot.chat(`/chat guild`)
+			waity(0.3)
 			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)){
 				this.app.log.broadcast(`${username}: ${message}`, 'Guild')
 				
@@ -291,6 +363,8 @@ class MinecraftManager extends CommunicationBridge {
 		}
 
 		else if(chatType=="officer"){
+			this.bot.chat(`/chat officer`)
+			waity(0.3)
 			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)){
 				this.app.log.broadcast(`${username}: ${message}`, 'Officer')
 		
@@ -310,7 +384,7 @@ class MinecraftManager extends CommunicationBridge {
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Officer')
 			
-				this.bot.chat(`/oc  ${replyingTo ? `${username} -> ${replyingTo} "${repliedTomsg}" :` : `${username}:`} ${message}`)
+				this.bot.chat(`/oc ${replyingTo ? `${username} -> ${replyingTo} "${repliedTomsg}" :` : `${username}:`} ${message}`)
 			}
 		}
 
@@ -324,7 +398,7 @@ class MinecraftManager extends CommunicationBridge {
 			}
 			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)){
 		
-				if(message!==""){
+				if(message!=="") {
 				this.bot.chat(`/w ${replyingTo} ${message}`)
 				waity(0.2)
 			}
