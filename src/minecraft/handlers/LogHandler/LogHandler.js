@@ -58,7 +58,7 @@ const totalTimeForActivityMins = 25 * 60
 const guildListFilename = "data/guild_list.txt"
 const sbLevelListFilename = "data/sb_level_list.txt"
 
-function saveLogsToFile() {
+async function saveLogsToFile() {
     delete logs["Quickdesh"]
     fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2), 'utf-8')
 }
@@ -102,7 +102,8 @@ async function getPlayerDetailsByName(username, addIfMissing = false) {
 
     if (addIfMissing) {
         const newPlayerDetails = await logUtils.processInBatches([username])
-        updatePlayer(newPlayerDetails[playerUuidKey], {})
+        await updatePlayer(newPlayerDetails[playerUuidKey], {})
+        await saveLogsToFile()
     }
 
     return null
@@ -196,7 +197,7 @@ module.exports = {
                     fromGuildRefresh
                 )
             }
-            saveLogsToFile()
+            await saveLogsToFile()
         }
     }
 }
