@@ -23,6 +23,7 @@ class MessageHandler {
 		if(message.guildId == this.discord.app.config.discord.guildid){
 
 			if (message.content.toLowerCase().indexOf("bean") != -1) message.react("986216693024051220")
+			if (message.content.toLowerCase().indexOf("meow") != -1) message.react("1445770583672619192")
 		} 
 		
 		if (!this.shouldBroadcastMessage(message)) {
