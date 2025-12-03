@@ -23,7 +23,16 @@ class MessageHandler {
 		if(message.guildId == this.discord.app.config.discord.guildid){
 
 			if (message.content.toLowerCase().indexOf("bean") != -1) message.react("986216693024051220")
-			if (message.content.toLowerCase().indexOf("meow") != -1) message.react("1445770583672619192")
+			if (message.content.toLowerCase().indexOf("meow") != -1) {
+				const cats = [
+					"1445772124332621958", "1445772125645574144", "1445772127327359140",
+					"1445772128279597129", "1445772129734754404", "1445772130569555969",
+					"1445772131647361175", "1445772132863836295", "1445772347952074953",
+					"1445772135611236546", "1445772349382070302"
+				]
+				const randomCat = cats[Math.floor(Math.random() * cats.length)];
+				message.react(randomCat)
+			}
 		} 
 		
 		if (!this.shouldBroadcastMessage(message)) {
