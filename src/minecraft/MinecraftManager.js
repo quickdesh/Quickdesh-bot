@@ -253,7 +253,6 @@ class MinecraftManager extends CommunicationBridge {
 			
 			if(partystatus == "busy"){
 				console.log(`Log > [${rank}] ${username} sent me a party invite (in party)`)
-
 				bot.chat(`/p leave`)
 				waity(1)
 				bot.chat(`/p ${username}`)
@@ -335,7 +334,6 @@ class MinecraftManager extends CommunicationBridge {
 		}
 
 		if(chatType=="guild"){
-			this.bot.chat(`/chat guild`)
 			waity(0.3)
 			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)){
 				this.app.log.broadcast(`${username}: ${message}`, 'Guild')
@@ -363,7 +361,6 @@ class MinecraftManager extends CommunicationBridge {
 		}
 
 		else if(chatType=="officer"){
-			this.bot.chat(`/chat officer`)
 			waity(0.3)
 			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)){
 				this.app.log.broadcast(`${username}: ${message}`, 'Officer')
