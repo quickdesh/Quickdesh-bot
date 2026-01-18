@@ -251,7 +251,7 @@ class MinecraftManager extends CommunicationBridge {
 
 			if(!rank){rank = "Non"};
 
-			u = username
+			let u = username
 			
 			if(partystatus == "busy"){
 				console.log(`Log > [${rank}] ${u} sent me a party invite (in party)`)
