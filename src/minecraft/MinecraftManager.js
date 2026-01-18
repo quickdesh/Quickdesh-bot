@@ -257,14 +257,18 @@ class MinecraftManager extends CommunicationBridge {
 				console.log(`Log > [${rank}] ${u} sent me a party invite (in party)`)
 				bot.chat(`/p leave`)
 				waity(5)
+				console.log(u)
 				bot.chat(`/p ${u}`)
+				console.log(`/p ${u}`)
 				partystatus = "busy"
 				console.log(`Log > I left and accepted the invite`)
 			}
 			else{
 				console.log(`Log > [${rank}] ${u} sent me a party invite`)
 				waity(5)
+				console.log(u)
 				bot.chat(`/p ${u}`)
+				console.log(`/p ${u}`)
 				partystatus = "busy"
 				console.log(`Log > I accepted the invite`)
 
