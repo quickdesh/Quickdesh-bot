@@ -247,11 +247,10 @@ class MinecraftManager extends CommunicationBridge {
 
 	
 		bot.on('chat:PARTY_INVITE', ([[rank, username]]) => {
-			if(bot.username == username){return}
+			let u = username.split(" ").pop();
+			if(bot.username == u){return}
 
 			if(!rank){rank = "Non"};
-
-			let u = username
 			
 			if(partystatus == "busy"){
 				console.log(`Log > [${rank}] ${u} sent me a party invite (in party)`)
