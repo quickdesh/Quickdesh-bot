@@ -1,6 +1,6 @@
 
 const { Collection } = require('discord.js')
-var admin_command_list=['friend','unfriend','command',"guildchat","officerchat","invite", "forcelist"]
+var admin_command_list=['friend','unfriend','command',"guildchat","officerchat","invite", "forcelist","json"]
 class CommandHandler {
   constructor(discord) {
     this.discord = discord
