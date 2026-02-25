@@ -67,7 +67,7 @@ async function loadPlayers(gr, gm) {
 
     for (let i = 0; i < guildRanks.length; i++) {
 
-        const currentGuildRank = guildRanks[i].trim()
+        const currentGuildRank = guildRanks[i].replace("--","").trim()
         const memberBlock = guildMembers[i]
 
         const players = [...memberBlock.matchAll(regex)].map(m => ({
