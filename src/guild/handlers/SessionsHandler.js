@@ -1,9 +1,9 @@
 const fs = require("fs")
 const { syncUUIDs } = require("./UuidAndRanksHandler.js")
 
-const FILE_PATH = "AspectOfTheEgg.json"
+const FILE_PATH = "./AspectOfTheEgg.json"
 
-const TEN_MINUTES = 600
+const TEN_MINUTES = 300
 const SIXTY_DAYS = 60 * 24 * 60 * 60
 
 function load() {

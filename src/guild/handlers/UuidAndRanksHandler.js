@@ -1,6 +1,6 @@
 const fs = require("fs")
 
-const FILE_PATH = "AspectOfTheEgg.json"
+const FILE_PATH = "./AspectOfTheEgg.json"
 const BATCH_SIZE = 10
 const DELAY_MS = 2000
 
