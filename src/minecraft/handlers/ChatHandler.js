@@ -1,6 +1,6 @@
 const EventHandler = require('../../contracts/EventHandler')
-const LogHandler = require('./LogHandler/LogHandler.js')
 const mineflayer = require('mineflayer')
+const GuildManager = require('../../guild/GuildManager.js')
 
 var gname= ""
 var online=""
@@ -138,8 +138,7 @@ class StateHandler extends EventHandler {
 		if(this.Line(message)){
 			if(lineType=="Guild_List"){
 				lineType="none"
-				LogHandler.updateGuildList(gr, gm, forceFullGuildRefresh)
-				this.setforceFullGuildRefresh(false)
+				GuildManager.loadPlayers(gr, gm)
 				return this.minecraft.guildList({title : gname, g1 : gr, g2 : gm, mem : total, chatTypes: commandChatTypes})
 			
 			}else if(lineType=="Guild_Online"){
@@ -185,7 +184,7 @@ class StateHandler extends EventHandler {
 
 			let num = Math.floor(Math.random() * join_array.length)
 
-			LogHandler.playerJoined(user)
+			GuildManager.playerJoin(user)
 	  
 			return this.minecraft.broadcastPlayerToggle({ username: user, message: join_array[num], color: 0x47F049 })
 		  }
@@ -214,7 +213,7 @@ class StateHandler extends EventHandler {
 
 			let num = Math.floor(Math.random() * leave_array.length)
 
-			LogHandler.playerLeft(user)
+			GuildManager.playerLeave(user)
 	  
 			return this.minecraft.broadcastPlayerToggle({ username: user, message: leave_array[num], color: 0xF04947 })
 		  }
@@ -233,12 +232,13 @@ class StateHandler extends EventHandler {
 			return this.minecraft.broadcastCleanEmbed({ message: `Unfriended ${user}`, color: 0xF04947 })}
 
 		if (this.isJoinMessage(message)) {
-			let user = message
+			const user = message
 				.replace(/\[(.*?)\]/g, '')
 				.trim()
 				.split(/ +/g)[0]
-			
-			LogHandler.addPlayer(user.replace(" ",""))
+				.trim()
+
+			GuildManager.playerGuildNew(message)
 			
 			return this.minecraft.broadcastHeadedEmbed({
 				message: `${user} joined the guild!`,
@@ -342,32 +342,12 @@ class StateHandler extends EventHandler {
 		}
 
 		if (this.isPromotionMessage(message)) {
-			let username = message
-				.replace(/\[(.*?)\]/g, '')
-				.trim()
-				.split(/ +/g)[0]
-			let newRank = message
-				.replace(/\[(.*?)\]/g, '')
-				.trim()
-				.split(' to ')
-				.pop()
-				.trim()
-
+			GuildManager.playerGuildMotion(message)
 			return this.minecraft.broadcastCleanEmbed({ message: `${message}`, color: 0x47F049 })
 		}
 
 		if (this.isDemotionMessage(message)) {
-			let username = message
-				.replace(/\[(.*?)\]/g, '')
-				.trim()
-				.split(/ +/g)[0]
-			let newRank = message
-				.replace(/\[(.*?)\]/g, '')
-				.trim()
-				.split(' to ')
-				.pop()
-				.trim()
-
+			GuildManager.playerGuildMotion(message)
 			return this.minecraft.broadcastCleanEmbed({ message: `${message}`, color: 0xF04947 })
 		}
 		if (this.isChangeMessage(message)) {

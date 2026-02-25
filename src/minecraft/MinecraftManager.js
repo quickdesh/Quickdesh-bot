@@ -247,10 +247,10 @@ class MinecraftManager extends CommunicationBridge {
 
 	
 		bot.on('chat:PARTY_INVITE', ([[rank, username]]) => {
-			let u = username.split(" ").pop();
+			let u = username.split(" ").pop()
 			if(bot.username == u){return}
 
-			if(!rank){rank = "Non"};
+			if(!rank){rank = "Non"}
 			
 			if(partystatus == "busy"){
 				console.log(`Log > [${rank}] ${u} sent me a party invite (in party)`)
@@ -287,11 +287,11 @@ class MinecraftManager extends CommunicationBridge {
 			username = username.replace(/.(\[.+\])/, '') //removes roles
 							   .replace(/(:.*)/, '') //removes weird colon and username thing
 
-			const commandRegex = /^\+(.+) (.+)/i;
+			const commandRegex = /^\+(.+) (.+)/i
 
 			if (message && commandRegex.test(message)) {
-				const matches = message.match(commandRegex);
-				const command = matches[1];
+				const matches = message.match(commandRegex)
+				const command = matches[1]
 
 				if ((command == "w" || command == "warp") && grank != "[Raw]") {
 
@@ -310,6 +310,8 @@ class MinecraftManager extends CommunicationBridge {
 				waity(2)
 				returntohouse()
 				a++
+				waity(5)
+				bot.chat("/g list")
 			}
 			
 		})
