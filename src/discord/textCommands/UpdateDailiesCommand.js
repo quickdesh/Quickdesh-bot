@@ -1,7 +1,8 @@
+const DiscordCommand = require('../../contracts/DiscordCommand')
 const EmbedHandler = require('../EmbedHandler')
 const DailiesService = require('../services/DailiesService')
 
-class UpdateDailies {
+class UpdateDailies extends DiscordCommand {
 
   constructor(discord) {
     this.discord = discord
