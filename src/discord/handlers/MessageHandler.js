@@ -21,7 +21,6 @@ class MessageHandler {
 	async onMessage(message) {
 
 		if(message.guildId == this.discord.app.config.discord.guildid){
-
 			if (message.content.toLowerCase().indexOf("bean") != -1) message.react("986216693024051220")
 			if (message.content.toLowerCase().indexOf("meow") != -1) {
 				const cats = [
@@ -34,12 +33,12 @@ class MessageHandler {
 				message.react(randomCat)
 			}
 		} 
+
+		let isCommand = await this.command.handle(message)
 		
 		if (!this.shouldBroadcastMessage(message)) {
 			return
 		}
-
-		let isCommand = await this.command.handle(message)
 	
 		if (isCommand) {
 			return

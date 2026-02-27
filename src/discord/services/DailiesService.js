@@ -133,28 +133,31 @@ async function update(client, zoneLabel) {
     ? "\n\n" + etListings.map(line => `• ${line}`).join('\n')
     : ""
 
-    const embed = new EmbedBuilder()
-    .setTitle("🕒 Dailies Reset Tracker")
-    .setColor(0xf5f45e)
-    .addFields(
-        {
-        name: "Next UTC Reset (00:00 UTC)",
-        value: data.resets.UTC
-            ? `<t:${data.resets.UTC}:R>\n<t:${data.resets.UTC}:t>${utcDescription}`
-            : "Not calculated yet",
-        inline: false
-        },
-        {
-        name: "Next ET Reset (00:00 ET)",
-        value: data.resets.ET
-            ? `<t:${data.resets.ET}:R>\n<t:${data.resets.ET}:t>${etDescription}`
-            : "Not calculated yet",
-        inline: false
-        }
-    )
-    .setTimestamp()
-
-    await message.edit({ embeds: [embed] })
+    await await message.edit({
+        embeds: [
+            {
+            color: 0xf5f45e,
+            title: "🕒 Dailies Reset Tracker",
+            fields: [
+                {
+                name: "Next UTC Reset (00:00 UTC)",
+                value: data.resets.UTC
+                    ? `<t:${data.resets.UTC}:R>\n<t:${data.resets.UTC}:t>${utcDescription}`
+                    : "Not calculated yet",
+                inline: false,
+                },
+                {
+                name: "Next ET Reset (00:00 ET)",
+                value: data.resets.ET
+                    ? `<t:${data.resets.ET}:R>\n<t:${data.resets.ET}:t>${etDescription}`
+                    : "Not calculated yet",
+                inline: false,
+                },
+            ],
+            timestamp: new Date(),
+            },
+        ],
+    })
 
   } catch (err) {
     console.error(`Dailies update failed (${zoneLabel})`, err)
