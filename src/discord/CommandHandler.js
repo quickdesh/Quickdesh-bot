@@ -1,4 +1,6 @@
+const fs = require('fs')
 const { Collection } = require('discord.js')
+
 class CommandHandler {
   constructor(discord) {
     this.discord = discord
