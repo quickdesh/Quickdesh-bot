@@ -1,32 +1,46 @@
-fs = require('fs');
-let json = require('./Embeds_Discord_List.json')
-const empty=" "
+const fs = require('fs')
+const FILE_PATH = './Embeds_Discord_List.json'
+
+function loadJson() {
+    try {
+        const data = fs.readFileSync(FILE_PATH, 'utf8')
+        return JSON.parse(data)
+    } catch {
+        return {}
+    }
+}
+
+function saveJson(json) {
+    fs.writeFileSync(
+        FILE_PATH,
+        JSON.stringify(json, null, 2)
+    )
+}
+
 module.exports = {
-    get: function(embed_content){
+
+    get(embed_content) {
+        const json = loadJson()
         return json[embed_content]
     },
-    addit: function(embed_content,embed_message_id){
-        
+
+    addit(embed_content, embed_message_id) {
+        const json = loadJson()
         json[embed_content] = embed_message_id
-        var json_str = JSON.stringify(json)
-        fs.writeFile("thread_manager.json", json_str, function (err) {
-            if (err) return console.log(err);
-        });
-        return "200";
+        saveJson(json)
+        return "200"
     },
-    delete: function(embed_content) {
-        delete json[embed_content];
-        var json_str = JSON.stringify(json)
-        fs.writeFile("thread_manager.json", json_str, function (err) {
-            if (err) return console.log(err);
-        });
-        return "200";
+
+    delete(embed_content) {
+        const json = loadJson()
+        delete json[embed_content]
+        saveJson(json)
+        return "200"
     },
-    includes: function(embed_content) {
-        if(json[embed_content]!== undefined){
-            return true
-        } else {
-            return false
-        }
+
+    includes(embed_content) {
+        const json = loadJson()
+        return json[embed_content] !== undefined
     }
+
 }

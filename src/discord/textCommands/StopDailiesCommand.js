@@ -5,7 +5,7 @@ const DailiesService = require('../services/DailiesService')
 class StopDailies extends DiscordCommand {
 
   constructor(discord) {
-    this.discord = discord
+    super(discord)
     this.name = "stopdailies"
     this.aliases = []
     this.isAdminCommand = true
