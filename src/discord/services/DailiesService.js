@@ -2,6 +2,7 @@ const cron = require('node-cron')
 const EmbedHandler = require('../EmbedHandler')
 const fs = require("fs").promises
 const path = require("path")
+const { DateTime } = require("luxon")
 
 const FILE_PATH = path.join(__dirname, "DailiesListings.json")
 
@@ -87,46 +88,22 @@ async function update(client, zoneLabel) {
 
     if (zoneLabel === "UTC" || zoneLabel === "ALL") {
 
-      const nextUtcMidnight = Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() + 1,
-        0, 0, 0
-      )
+        const utcMidnight = DateTime.now()
+            .setZone("UTC")
+            .plus({ days: 1 })
+            .startOf("day")
 
-      data.resets.UTC = Math.floor(nextUtcMidnight / 1000)
+        data.resets.UTC = Math.floor(utcMidnight.toSeconds())
+    }
 
-    } 
-    
     if (zoneLabel === "ET" || zoneLabel === "ALL") {
 
-        const now = new Date()
+        const etMidnight = DateTime.now()
+            .setZone("America/New_York")
+            .plus({ days: 1 })
+            .startOf("day")
 
-        // Get current time in ET
-        const formatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: "America/New_York",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit"
-        })
-
-        const parts = formatter.formatToParts(now)
-
-        const year = parts.find(p => p.type === "year").value
-        const month = parts.find(p => p.type === "month").value
-        const day = parts.find(p => p.type === "day").value
-
-        const etMidnight = new Date(
-            `${year}-${month}-${Number(day) + 1}T00:00:00`
-        )
-
-        const etUnix = Math.floor(
-            new Date(
-            etMidnight.toLocaleString("en-US", { timeZone: "UTC" })
-            ).getTime() / 1000
-        )
-
-        data.resets.ET = etUnix
+        data.resets.ET = Math.floor(etMidnight.toSeconds())
     }
 
     EmbedHandler.addit("dailiesEmbed", data)
