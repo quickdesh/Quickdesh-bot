@@ -1,14 +1,16 @@
 const cron = require('node-cron')
 const EmbedHandler = require('../EmbedHandler')
-const DailiesListings = require('./DailiesListings.json')
+const fs = require("fs").promises
+const path = require("path")
+
+const FILE_PATH = path.join(__dirname, "DailiesListings.json")
 
 let dailyTaskUTC = null
 let dailyTaskET = null
 
 async function start(client) {
 
-  await update(client, "UTC")
-  await update(client, "America/New_York")
+  await update(client, "ALL")
 
   if (!dailyTaskUTC) {
     dailyTaskUTC = cron.schedule(
@@ -83,7 +85,7 @@ async function update(client, zoneLabel) {
 
     const now = new Date()
 
-    if (zoneLabel === "UTC") {
+    if (zoneLabel === "UTC" || zoneLabel === "ALL") {
 
       const nextUtcMidnight = Date.UTC(
         now.getUTCFullYear(),
@@ -94,7 +96,9 @@ async function update(client, zoneLabel) {
 
       data.resets.UTC = Math.floor(nextUtcMidnight / 1000)
 
-    } else if (zoneLabel === "ET") {
+    } 
+    
+    if (zoneLabel === "ET" || zoneLabel === "ALL") {
 
       const etNow = new Date(
         now.toLocaleString("en-US", { timeZone: "America/New_York" })
@@ -113,6 +117,7 @@ async function update(client, zoneLabel) {
     }
 
     EmbedHandler.addit("dailiesEmbed", data)
+    let DailiesListings = await loadJson()
 
     let utcListings = []
     let etListings = []
@@ -126,31 +131,32 @@ async function update(client, zoneLabel) {
     }
 
     const utcDescription = utcListings.length > 0
-    ? "\n\n" + utcListings.map(line => `• ${line}`).join('\n')
+    ? "\n\n" + utcListings.map(line => `${line}`).join('\n')
     : ""
 
     const etDescription = etListings.length > 0
-    ? "\n\n" + etListings.map(line => `• ${line}`).join('\n')
+    ? "\n\n" + etListings.map(line => `${line}`).join('\n')
     : ""
 
-    await await message.edit({
+    await message.edit({
+        content: "",
         embeds: [
             {
             color: 0xf5f45e,
             title: "🕒 Dailies Reset Tracker",
             fields: [
                 {
-                name: "Next UTC Reset (00:00 UTC)",
-                value: data.resets.UTC
-                    ? `<t:${data.resets.UTC}:R>\n<t:${data.resets.UTC}:t>${utcDescription}`
-                    : "Not calculated yet",
+                name: data.resets.UTC
+                    ? `<t:${data.resets.UTC}:t> (<t:${data.resets.UTC}:R>)`
+                    : "Next UTC Reset (00:00 UTC)",
+                value:`${utcDescription}`,
                 inline: false,
                 },
                 {
-                name: "Next ET Reset (00:00 ET)",
-                value: data.resets.ET
-                    ? `<t:${data.resets.ET}:R>\n<t:${data.resets.ET}:t>${etDescription}`
-                    : "Not calculated yet",
+                name: data.resets.ET
+                    ? `<t:${data.resets.ET}:t> (<t:${data.resets.ET}:R>)`
+                    : "Next ET Reset (00:00 ET)",
+                value:`${etDescription}`,
                 inline: false,
                 },
             ],
@@ -164,4 +170,54 @@ async function update(client, zoneLabel) {
   }
 }
 
-module.exports = { start, stop }
+async function loadJson() {
+    let DailiesListings = {}
+
+    try {
+    const file = await fs.readFile(FILE_PATH, "utf8")
+        DailiesListings = JSON.parse(file)
+    } catch (err) {
+    console.error("Failed to load DailiesListings.json:", err)
+        DailiesListings = { "et": ["Fetchur"], "utc": ["Matriarch"] }
+    }
+
+    return DailiesListings
+}
+
+async function updateJson(client, action, zone, text) {
+
+  let DailiesListings = await loadJson()
+
+  if (!Array.isArray(DailiesListings.utc)) DailiesListings.utc = []
+  if (!Array.isArray(DailiesListings.et)) DailiesListings.et = []
+
+  if (action === "add") {
+
+    DailiesListings[zone].push(text.trim())
+
+  } else if (action === "remove") {
+
+    const index = parseInt(text)
+
+    if (!isNaN(index)) {
+      DailiesListings[zone].splice(index - 1, 1)
+
+    } else {
+      DailiesListings[zone] = DailiesListings[zone].filter(
+        item => item.toLowerCase() !== text.toLowerCase()
+      )
+
+    }
+  }
+
+  await fs.writeFile(
+    FILE_PATH,
+    JSON.stringify(DailiesListings, null, 2)
+  )
+
+  await update(client, "ALL")
+
+  return true
+}
+
+module.exports = { start, stop, updateJson }
