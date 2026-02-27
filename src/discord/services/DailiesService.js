@@ -100,20 +100,33 @@ async function update(client, zoneLabel) {
     
     if (zoneLabel === "ET" || zoneLabel === "ALL") {
 
-      const etNow = new Date(
-        now.toLocaleString("en-US", { timeZone: "America/New_York" })
-      )
+        const now = new Date()
 
-      etNow.setDate(etNow.getDate() + 1)
-      etNow.setHours(0, 0, 0, 0)
+        // Get current time in ET
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/New_York",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        })
 
-      const etUnix = Math.floor(
-        new Date(
-          etNow.toLocaleString("en-US", { timeZone: "UTC" })
-        ).getTime() / 1000
-      )
+        const parts = formatter.formatToParts(now)
 
-      data.resets.ET = etUnix
+        const year = parts.find(p => p.type === "year").value
+        const month = parts.find(p => p.type === "month").value
+        const day = parts.find(p => p.type === "day").value
+
+        const etMidnight = new Date(
+            `${year}-${month}-${Number(day) + 1}T00:00:00`
+        )
+
+        const etUnix = Math.floor(
+            new Date(
+            etMidnight.toLocaleString("en-US", { timeZone: "UTC" })
+            ).getTime() / 1000
+        )
+
+        data.resets.ET = etUnix
     }
 
     EmbedHandler.addit("dailiesEmbed", data)

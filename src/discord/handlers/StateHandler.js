@@ -21,7 +21,7 @@ class StateHandler {
 			this.discord.dmwebhook = await getDmWebhook(this.discord)
 		}
 		if (EmbedHandler.includes(`Bridge Online`) == true){
-			this.app.discord.client.channels.fetch(this.app.config.discord.gcchannel).then(async channel => {
+			this.discord.client.channels.fetch(this.discord.app.config.discord.gcchannel).then(async channel => {
 			await channel.messages.fetch(await EmbedHandler.get(`Bridge Online`)).then( async message => {message.delete()})
 			})
 		}
@@ -39,7 +39,7 @@ class StateHandler {
 	
 	onClose() {
 		if (EmbedHandler.includes(`Bridge Offline`) == true){
-			this.app.discord.client.channels.fetch(this.app.config.discord.gcchannel).then(async channel => {
+			this.discord.client.channels.fetch(this.discord.app.config.discord.gcchannel).then(async channel => {
 			await channel.messages.fetch(await EmbedHandler.get(`Bridge Offline`)).then( async message => {message.delete()})
 			})
 		}
