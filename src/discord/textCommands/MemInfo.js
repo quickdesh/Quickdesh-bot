@@ -7,6 +7,7 @@ class MemInfoCommand extends DiscordCommand {
 		this.name = 'member'
 		this.aliases = ['m', 'mem']
 		this.description = 'Gets information of the specific Guild Member'
+		this.isAdminCommand = false
 	}
 
 	onCommand(message) {

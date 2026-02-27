@@ -25,8 +25,7 @@ module.exports = {
     includes: function(embed_content) {
         if(json[embed_content]!== undefined){
             return true
-        }
-        else{
+        } else {
             return false
         }
     }

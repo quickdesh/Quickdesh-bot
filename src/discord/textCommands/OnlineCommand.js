@@ -7,6 +7,7 @@ class GOnlineCommand extends DiscordCommand {
 		this.name = 'online'
 		this.aliases = ['o', 'on']
 		this.description = 'Shows who is online'
+		this.isAdminCommand = false
 	}
 
 	onCommand(message) {

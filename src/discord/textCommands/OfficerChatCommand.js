@@ -7,6 +7,7 @@ class OfficerChatCommand extends DiscordCommand {
 		this.name = 'officerchat'
 		this.aliases = ['oc']
 		this.description = 'Sends a message in officer chat as the bot'
+		this.isAdminCommand = true
 	}
 
 

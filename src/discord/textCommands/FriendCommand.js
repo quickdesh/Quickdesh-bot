@@ -7,6 +7,7 @@ class FriendCommand extends DiscordCommand {
 		this.name = 'friend'
 		this.aliases = ['f', 'fr']
 		this.description = 'Sends a friend request to the given user'
+		this.isAdminCommand = true
 	}
 
 	onCommand(message) {

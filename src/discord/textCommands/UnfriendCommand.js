@@ -7,6 +7,7 @@ class UnfriendCommand extends DiscordCommand {
 		this.name = 'unfriend'
 		this.aliases = ['uf', 'unfr']
 		this.description = 'Unfriends the given user'
+		this.isAdminCommand = true
 	}
 
 	onCommand(message) {

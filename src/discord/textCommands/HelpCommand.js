@@ -9,6 +9,7 @@ class HelpCommand extends DiscordCommand {
     this.name = 'help'
     this.aliases = ['h', 'info']
     this.description = 'Shows this help menu'
+    this.isAdminCommand = false
   }
 
   onCommand(message) {

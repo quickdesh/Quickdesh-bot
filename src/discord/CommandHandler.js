@@ -1,6 +1,4 @@
-
 const { Collection } = require('discord.js')
-var admin_command_list=['friend','unfriend','command',"guildchat","officerchat","invite", "forcelist","json"]
 class CommandHandler {
   constructor(discord) {
     this.discord = discord
@@ -8,9 +6,9 @@ class CommandHandler {
     this.prefix = discord.app.config.discord.prefix
 
     this.commands = new Collection()
-    let commandFiles = fs.readdirSync('./src/discord/commands').filter(file => file.endsWith('.js'))
+    let commandFiles = fs.readdirSync('./src/discord/textCommands').filter(file => file.endsWith('.js'))
     for (const file of commandFiles) {
-      const command = new (require(`./commands/${file}`))(discord)
+      const command = new (require(`./textCommands/${file}`))(discord)
       this.commands.set(command.name, command)
     }
   }
@@ -33,7 +31,7 @@ class CommandHandler {
 
     let isCommander = await this.isCommander(message)
 
-    if ((admin_command_list.includes(command.name) && (!this.isOwner(message) && !isCommander))) {
+    if ((command.isAdminCommand && (!this.isOwner(message) && !isCommander))) {
       message.channel.send({
         embeds: [
           {
@@ -43,7 +41,7 @@ class CommandHandler {
           }
         ]
       })
-    return
+    return true
     }
 
 

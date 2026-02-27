@@ -7,6 +7,7 @@ class GListCommand extends DiscordCommand {
 		this.name = 'list'
 		this.aliases = ['l', 'li']
 		this.description = 'Shows who is in the guild'
+		this.isAdminCommand = false
 	}
 
 	onCommand(message) {

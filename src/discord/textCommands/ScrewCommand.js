@@ -8,6 +8,7 @@ class ScrewCommand extends DiscordCommand {
 
     this.name = 'screw'
     this.description = 'Screw You'
+    this.isAdminCommand = false
   }
 
   onCommand(message) {

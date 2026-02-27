@@ -2,6 +2,7 @@ const fetch = require("cross-fetch")
 const CommunicationBridge = require('../contracts/CommunicationBridge')
 const StateHandler = require('./handlers/StateHandler')
 const MessageHandler = require('./handlers/MessageHandler')
+const InteractionHandler = require('./handlers/InteractionHandler')
 const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
@@ -14,6 +15,7 @@ class DiscordManager extends CommunicationBridge {
 
     this.stateHandler = new StateHandler(this)
     this.messageHandler = new MessageHandler(this, new CommandHandler(this))
+    this.interactionHandler = new InteractionHandler(this)
   }
 
   connect() {
@@ -44,25 +46,9 @@ class DiscordManager extends CommunicationBridge {
     
     })
 
-    this.client.on('interactionCreate', async butt => {
-
-      if (!butt.isButton()) return
-      
-      if (butt.isButton()){
-        await butt.deferUpdate()
-      }
-      if(butt.customId.split(" ")[0] == "acceptjoinee"){
-        butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
-        const player = butt.customId.split(" ")[1]
-        this.app.minecraft.bot.chat(`/g accept ${player}`)
-        this.app.minecraft.bot.chat(`/g invite ${player}`)
-        butt.message.reply({content: `${butt.user} accepted ${player}`})
-      }
-      else if(butt.customId.split(" ")[0] == "rejectjoinee"){
-        butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
-        const player = butt.customId.split(" ")[1]
-        butt.message.reply({content: `${butt.user} rejected ${player}`})
-      }
+    this.client.on('interactionCreate', async interaction => {
+      this.interactionHandler.buttonInteraction(interaction)
+      this.interactionHandler.slashInteraction(interaction)
     })
     
     this.client.login(this.app.config.discord.token).catch(error => {

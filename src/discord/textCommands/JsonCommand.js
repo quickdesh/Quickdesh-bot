@@ -8,6 +8,7 @@ class ScrewCommand extends DiscordCommand {
 
     this.name = 'json'
     this.description = 'Returns the AOTE JSON file'
+    this.isAdminCommand = true
   }
 
   onCommand(message) {

@@ -7,6 +7,7 @@ class CommandCommand extends DiscordCommand {
 		this.name = 'command'
 		this.aliases = ['c', 'com']
 		this.description = 'Runs the given command'
+		this.isAdminCommand = true
 	}
 
 	onCommand(message) {

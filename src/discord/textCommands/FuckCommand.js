@@ -8,6 +8,7 @@ class FuckCommand extends DiscordCommand {
 
     this.name = 'fuck'
     this.description = 'Fuck You'
+    this.isAdminCommand = false
   }
 
   onCommand(message) {

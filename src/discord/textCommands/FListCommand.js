@@ -7,6 +7,7 @@ class FListCommand extends DiscordCommand {
 		this.name = 'flist'
 		this.aliases = ['fl', 'fli']
 		this.description = 'Shows friend list'
+		this.isAdminCommand = false
 	}
 
 	onCommand(message) {

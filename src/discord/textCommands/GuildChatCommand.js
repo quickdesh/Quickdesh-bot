@@ -7,6 +7,7 @@ class GuildChatCommand extends DiscordCommand {
 		this.name = 'guildchat'
 		this.aliases = ['gc']
 		this.description = 'Sends a message in guild chat as the bot'
+		this.isAdminCommand = true
 	}
 
 	onCommand(message) {

@@ -7,6 +7,7 @@ class GListCommand extends DiscordCommand {
 		this.name = 'inactivity'
 		this.aliases = ['inactive', 'inact']
 		this.description = 'Kicks a memeber from the guild with a message of inactivity'
+		this.isAdminCommand = true
 	}
 
 	onCommand(message) {
