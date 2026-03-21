@@ -49,7 +49,8 @@ class Configuration {
       	DISCORD_PREFIX: val => (this.properties.discord.prefix = val),
       	DISCORD_MESSAGEMODE: val => (this.properties.discord.messageMode = val),
       	DISCORD_THUMBNAIL: val => (this.properties.discord.thumbnail = val),
-      	DISCORD_GUILDNAME: val => (this.properties.discord.guildname = val)
+      	DISCORD_GUILDNAME: val => (this.properties.discord.guildname = val),
+		DISCORD_BLOCKED_WORDS: val => (this.properties.discord.blockedWords = val)
 	}
 
 	constructor() {
