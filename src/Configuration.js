@@ -26,7 +26,7 @@ class Configuration {
 			messageMode: "webhook",
 			thumbnail: "https://",
 			guildname: null,
-			bannedWords: null
+			blockedWords: null
 		},
 	}
 
