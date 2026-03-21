@@ -188,7 +188,7 @@ class MessageHandler {
 			
 
 	 containsWord(text) {
-		blockedWords = this.discord.app.config.discord.blockedWords
+		let blockedWords = this.discord.app.config.discord.blockedWords
 		if (!text) return false
 
 		const lowerText = text.toLowerCase()
