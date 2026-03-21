@@ -25,8 +25,8 @@ class Configuration {
 			prefix: "+",
 			messageMode: "webhook",
 			thumbnail: "https://",
-			guildname: null
-			
+			guildname: null,
+			bannedWords: null
 		},
 	}
 

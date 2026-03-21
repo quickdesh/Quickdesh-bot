@@ -27,16 +27,20 @@ class StateHandler extends EventHandler {
 	onEnd() {
 		let loginDelay = this.exactDelay
 		if (loginDelay == 0) {
-			loginDelay = (this.loginAttempts + 1) * 5000
+			loginDelay = (this.loginAttempts + 1) * 10000
 
 			if (loginDelay > 60000) {
 				loginDelay = 60000
 			}
 		}
 
-		this.minecraft.app.log.warn(`Minecraft bot disconnected from server, attempting reconnect in ${loginDelay / 1000} seconds`)
-
-		setTimeout(() => this.minecraft.connect(), loginDelay)
+		if (this.loginAttempts >= 5) {
+			this.minecraft.app.log.error("Max reconnect attempts reached. Stopping bot.")
+			return
+		} else {
+			this.minecraft.app.log.warn(`Minecraft bot disconnected from server, attempting reconnect in ${loginDelay / 1000} seconds`)
+			setTimeout(() => this.minecraft.connect(), loginDelay)
+		}
 	}
 
 	onKicked(reason) {

@@ -300,7 +300,6 @@ class MinecraftManager extends CommunicationBridge {
 						runningcommand = "warpannoyingplayer"
 						inviteannoyingplayer(annoyingplayer)
 					}
-					
 				}
 			}
 		})
@@ -313,12 +312,7 @@ class MinecraftManager extends CommunicationBridge {
 				waity(5)
 				bot.chat("/g list")
 			}
-			
 		})
-
-		
-		
-
 		bot.on('error', err => console.log(err))
 	}
 
@@ -328,7 +322,7 @@ class MinecraftManager extends CommunicationBridge {
 			while (waitTill > new Date()) {}
 		}
 
-		if(Attachmsg == undefined){
+		if(Attachmsg == undefined) {
 
 			message=message.replace("ez","e z")
 						   .replace("Ez","E z")
@@ -339,13 +333,13 @@ class MinecraftManager extends CommunicationBridge {
 		if(chatType=="guild"){
 			this.bot.chat(`/chat guild`)
 			waity(0.3)
-			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)){
+			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)) {
 				this.app.log.broadcast(`${username}: ${message}`, 'Guild')
 				
 				this.bot.chat(`/gc ${username}: ${message}`)
 
 			}
-			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)){
+			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 			
 				if(message!==""){
 				this.app.log.broadcast(`${username}: ${message}`, 'Guild')
@@ -364,17 +358,16 @@ class MinecraftManager extends CommunicationBridge {
 	
 		}
 
-		else if(chatType=="officer"){
+		else if(chatType=="officer") {
 			this.bot.chat(`/chat officer`)
 			waity(0.3)
-			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)){
+			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)) {
 				this.app.log.broadcast(`${username}: ${message}`, 'Officer')
 		
 				this.bot.chat(`/oc ${username}: ${message}`)
-	
+
 			}
-			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)){
-		
+			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 				if(message!==""){
 				this.app.log.broadcast(`${username}: ${message}`, 'Officer')
 				this.bot.chat(`/oc ${username}: ${message}`)
@@ -391,14 +384,14 @@ class MinecraftManager extends CommunicationBridge {
 		}
 
 		else if(chatType=="message"){
-			if ((this.bot.player !== undefined) && (Attachmsg == undefined)){
+			if ((this.bot.player !== undefined) && (Attachmsg == undefined)) {
 
 				this.app.log.broadcast(`To ${replyingTo}: ${message}`, 'DM')
 		
 				this.bot.chat(`/w ${replyingTo} ${message}`)
 	
 			}
-			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)){
+			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 		
 				if(message!=="") {
 				this.bot.chat(`/w ${replyingTo} ${message}`)
@@ -408,12 +401,7 @@ class MinecraftManager extends CommunicationBridge {
 				this.app.log.broadcast(`Sent an attachment to ${replyingTo}`, 'DM')
 			}
 		}
-		
-
 	}
-	
-	
-	
 }
 
 module.exports = MinecraftManager

@@ -187,15 +187,43 @@ class MessageHandler {
 	}
 			
 
-	 
+	 containsWord(text) {
+		blockedWords = this.discord.app.config.discord.bannedWords
+		if (!text) return false
+
+		const lowerText = text.toLowerCase()
+
+		return blockedWords.some(word =>
+			lowerText.includes(word.toLowerCase())
+		)
+	}
+
+	
 	
   
 	shouldBroadcastMessage(message) {
-		if(message.attachments.size > 0){
-			return !message.author.bot && (message.channel.id == this.discord.app.config.discord.gcchannel || message.channel.parentId == this.discord.app.config.discord.dmchannel || message.channel.id == this.discord.app.config.discord.occhannel )
-		}else{
-			return !message.author.bot && (message.channel.id == this.discord.app.config.discord.gcchannel || message.channel.parentId == this.discord.app.config.discord.dmchannel || message.channel.id == this.discord.app.config.discord.occhannel ) && message.content && message.content.length > 0
-		}	}
+		const isValidChannel =
+			message.channel.id == this.discord.app.config.discord.gcchannel ||
+			message.channel.parentId == this.discord.app.config.discord.dmchannel ||
+			message.channel.id == this.discord.app.config.discord.occhannel
+
+		const hasContent = message.content && message.content.length > 0
+		const hasAttachments = message.attachments.size > 0
+
+		const containsBlockedWord = this.containsWord(message.content)
+		const displayName = message.member?.displayName ||
+							message.author.globalName ||
+							message.author.username || "A User"
+		if (containsBlockedWord){
+			console.log(`${displayName} said a banned word in ${message.content}"`)
+		}
+		return (
+			!message.author.bot &&
+			isValidChannel &&
+			(hasAttachments || hasContent) &&
+			!containsBlockedWord
+		)
+	}
   }
   
   module.exports = MessageHandler
