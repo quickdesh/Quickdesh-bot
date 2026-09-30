@@ -8,6 +8,7 @@ class StopDailies extends DiscordCommand {
     super(discord)
     this.name = "stopdailies"
     this.aliases = []
+    this.description = 'Stops the Dailies embed updater'
     this.isAdminCommand = true
   }
 

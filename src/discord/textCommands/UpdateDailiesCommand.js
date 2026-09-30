@@ -8,6 +8,7 @@ class UpdateDailies extends DiscordCommand {
     super(discord)
     this.name = "updatedailies"
     this.aliases = []
+    this.description = 'Updates the Dailies embed'
     this.isAdminCommand = true
   }
 

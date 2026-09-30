@@ -1,8 +1,9 @@
+const fs = require('fs')
 const DiscordCommand = require('../../contracts/DiscordCommand')
 
 const { version } = require('../../../package.json')
 
-class ScrewCommand extends DiscordCommand {
+class JsonCommand extends DiscordCommand {
   constructor(discord) {
     super(discord)
 
@@ -25,5 +26,5 @@ class ScrewCommand extends DiscordCommand {
   }
 }
 
-module.exports = ScrewCommand 
+module.exports = JsonCommand 
     

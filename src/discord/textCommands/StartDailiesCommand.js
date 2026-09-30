@@ -8,6 +8,7 @@ class StartDailies extends DiscordCommand {
     super(discord)
     this.name = "startdailies"
     this.aliases = []
+    this.description = 'Starts the Dailies embed'
     this.isAdminCommand = true
   }
 

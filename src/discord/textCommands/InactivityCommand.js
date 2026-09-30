@@ -1,6 +1,6 @@
 const DiscordCommand = require('../../contracts/DiscordCommand')
 
-class GListCommand extends DiscordCommand {
+class InactivityCommand extends DiscordCommand {
 	constructor(discord) {
 		super(discord)
 
@@ -20,4 +20,4 @@ class GListCommand extends DiscordCommand {
 	}
 }
 
-module.exports = GListCommand
+module.exports = InactivityCommand
