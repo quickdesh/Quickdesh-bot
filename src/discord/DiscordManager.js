@@ -4,10 +4,13 @@ const MessageHandler = require('./handlers/MessageHandler')
 const InteractionHandler = require('./handlers/InteractionHandler')
 const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
-const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
+const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
+
+const DETAILS_AUTO_HIDE_MS = 5 * 60 * 1000
+const detailTimers = new Map()
 const GuildManager = require("../guild/GuildManager.js")
-const { formatBan, buildBanListMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
+const { formatBan, formatFormerBan, latestFormerBan, buildBanListMessage, buildBanRecordMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -201,6 +204,22 @@ class DiscordManager extends CommunicationBridge {
     })
   }
 
+  joinRequestRows({ name, uuid, hasDetails, showDetails, verdictRow = null, profileRow = null }) {
+    const links = new ActionRowBuilder().addComponents(
+      ...(hasDetails ? [
+        new ButtonBuilder()
+          .setCustomId(`joinreq-details:${showDetails ? "hide" : "show"}:${name}`)
+          .setLabel(showDetails ? "Hide Details" : "Show Details")
+          .setEmoji(showDetails ? "🔼" : "🔽")
+          .setStyle(ButtonStyle.Primary)
+      ] : []),
+      new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${uuid ?? name}`),
+      new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${name}`)
+    )
+
+    return [links, ...(showDetails && profileRow ? [profileRow] : []), ...(verdictRow ? [verdictRow] : [])]
+  }
+
   async joinRequest({ channel, embed, username }) {
     const sent = await channel.send({ embeds: [embed] })
 
@@ -218,20 +237,77 @@ class DiscordManager extends CommunicationBridge {
       new ButtonBuilder().setCustomId(`acceptjoinee ${name}`).setLabel(ban ? `Accept anyway` : `Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ban ? ButtonStyle.Danger : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`rejectjoinee ${name}`).setLabel(`Reject`).setEmoji({ name: "qnon", id: "933344718790750229" }).setStyle(ButtonStyle.Secondary)
     )
-    const playerLinks = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${info?.uuid ?? name}`),
-      new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${name}`)
-    )
 
     const requestEmbed = info ? { ...embed, description: `${embed.description}\n🆔 \`${info.uuid}\`` } : embed
     if (ban) {
       requestEmbed.color = 0xDA373C
       requestEmbed.fields = [{ name: "⛔ This player is BANNED", value: formatBan(ban) }]
+      this.warnOfficersOfBannedRequest(name, ban)
+    } else if (info?.banHistory?.length) {
+      requestEmbed.fields = [{ name: `📜 Previously banned (${info.banHistory.length})`, value: formatFormerBan(latestFormerBan(info.banHistory)) }]
     }
-    const statEmbeds = info ? buildJoinRequestEmbeds(info) : []
-    const profileRow = info ? buildJoinRequestProfileRow(info) : null
-    await sent.edit({ embeds: [requestEmbed, ...statEmbeds], components: [acceptReject, ...(profileRow ? [profileRow] : []), playerLinks] })
+
+    await sent.edit({
+      embeds: [requestEmbed],
+      components: this.joinRequestRows({ name, uuid: info?.uuid, hasDetails: !!info, showDetails: false, verdictRow: acceptReject })
+    })
   }
+
+  findVerdictRow(message) {
+    const row = message.components.find(r => r.components.some(c => c.customId?.startsWith("acceptjoinee")))
+    return row ? new ActionRowBuilder().addComponents(row.components.map(c => ButtonBuilder.from(c))) : null
+  }
+
+  async joinRequestDetails({ message, name, show, profileId = null }) {
+    clearTimeout(detailTimers.get(message.id))
+    detailTimers.delete(message.id)
+
+    if (!show) return this.joinRequestCollapse(message)
+
+    try {
+      const info = await GuildManager.getMemberInfo(this.app, name)
+      if (!info) return
+
+      await message.edit({
+        embeds: [message.embeds[0], ...buildJoinRequestEmbeds({ ...info, profileId })],
+        components: this.joinRequestRows({
+          name: info.name,
+          uuid: info.uuid,
+          hasDetails: true,
+          showDetails: true,
+          verdictRow: this.findVerdictRow(message),
+          profileRow: buildJoinRequestProfileRow(info, profileId)
+        })
+      })
+
+      detailTimers.set(message.id, setTimeout(async () => {
+        detailTimers.delete(message.id)
+        const latest = await message.channel?.messages?.fetch(message.id).catch(() => null) ?? message
+        const stillShown = latest.components.some(r => r.components.some(c => c.customId?.startsWith("joinreq-details:hide")))
+        if (stillShown) await this.joinRequestCollapse(latest).catch(err => this.app.log.error(`Auto-hide failed for ${name}: ${err.message}`))
+      }, this.detailsAutoHideMs ?? DETAILS_AUTO_HIDE_MS))
+    } catch (err) {
+      this.app.log.error(`Join request details failed for ${name}: ${err.message}`)
+    }
+  }
+
+  async joinRequestCollapse(message, { removeVerdict = false } = {}) {
+    clearTimeout(detailTimers.get(message.id))
+    detailTimers.delete(message.id)
+
+    const components = message.components
+      .filter(row => !row.components.some(c => c.customId?.startsWith("joinreq-profile:")))
+      .filter(row => !(removeVerdict && row.components.some(c => c.customId?.startsWith("acceptjoinee"))))
+      .map(row => new ActionRowBuilder().addComponents(row.components.map(c => {
+        const button = ButtonBuilder.from(c)
+        if (!c.customId?.startsWith("joinreq-details:")) return button
+        const name = c.customId.split(":").slice(2).join(":")
+        return button.setCustomId(`joinreq-details:show:${name}`).setLabel("Show Details").setEmoji("🔽")
+      })))
+
+    await message.edit({ embeds: [message.embeds[0]], components })
+  }
+
 
   async ban({ channel, args, author }){
     this.app.log.broadcast('Ban ' + args.join(' '), 'Command')
@@ -239,7 +315,9 @@ class DiscordManager extends CommunicationBridge {
     const [username, ...reasonWords] = args.filter(Boolean)
     const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
 
-    if (!username) return fail(`Usage: \`${prefix}ban <ign> [reason]\``)
+    if (!username || reasonWords.length === 0) {
+      return fail(`${username ? `You need to give a reason to ban **${username}**.\n\n` : ""}Usage: \`${prefix}ban <ign> <reason>\`\nExample: \`${prefix}ban ${username ?? "Bob"} scamming members\``)
+    }
 
     try {
       const result = await GuildManager.banPlayer(username, reasonWords.join(" "), author)
@@ -259,7 +337,8 @@ class DiscordManager extends CommunicationBridge {
           botOnline
             ? `Kicked from the guild with: *${kickReason}*`
             : `⚠️ The bot isn't online in Minecraft, so they weren't kicked. Kick them in-game or run \`${prefix}ban\` again once the bot is back.`,
-          ...(result.previous ? ["", `This replaced their earlier ban from <t:${result.previous.at}:d>${result.previous.reason ? ` (${result.previous.reason})` : ""}.`] : [])
+          ...(result.previous ? ["", `This replaced their earlier ban from <t:${result.previous.at}:d>${result.previous.reason ? ` (${result.previous.reason})` : ""}.`] : []),
+          ...(result.history.length ? ["", `📜 They have ${result.history.length} earlier ban${result.history.length === 1 ? "" : "s"} on record. \`${prefix}banlist ${result.name}\` shows them.`] : [])
         ].join("\n")
       }] })
     } catch (err) {
@@ -268,26 +347,51 @@ class DiscordManager extends CommunicationBridge {
     }
   }
 
-  async unban({ channel, args }){
+  async unban({ channel, args, author }){
     this.app.log.broadcast('Unban ' + args.join(' '), 'Command')
-    const username = args.filter(Boolean)[0]
+    const prefix = this.app.config.discord.prefix
+    const [username, ...reasonWords] = args.filter(Boolean)
     const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
 
-    if (!username) return fail(`Usage: \`${this.app.config.discord.prefix}unban <ign>\``)
+    if (!username || reasonWords.length === 0) {
+      return fail(`${username ? `You need to give a reason to unban **${username}**.\n\n` : ""}Usage: \`${prefix}unban <ign> <reason>\`\nExample: \`${prefix}unban ${username ?? "Bob"} appealed and apologised\``)
+    }
 
     try {
-      const result = await GuildManager.unbanPlayer(username)
+      const result = await GuildManager.unbanPlayer(username, reasonWords.join(" "), author)
       if (!result.removed) return fail(`**${result.name}** isn't on the ban list.`)
-      await channel.send({ embeds: [{ color: 0x47F049, description: `✅ **${result.name}** is no longer banned. They were banned <t:${result.removed.at}:d> by ${result.removed.by ?? "Unknown"}${result.removed.reason ? ` for: ${result.removed.reason}` : ""}.` }] })
+      await channel.send({ embeds: [{
+        color: 0x47F049,
+        title: `✅ ${result.name} is no longer banned`,
+        description: [
+          formatFormerBan(result.removed),
+          `🆔 \`${result.uuid}\``,
+          "",
+          `This ban is kept in \`${prefix}banlist\` under former bans. Unbanning doesn't invite them back; use \`${prefix}invite ${result.name}\` for that.`
+        ].join("\n")
+      }] })
     } catch (err) {
       this.app.log.error(`Unban failed for ${username}: ${err.message}`)
       await fail(`Couldn't unban **${username}**: ${err.message}`)
     }
   }
 
-  async banList({ channel }){
-    this.app.log.broadcast('Ban List', 'Command')
-    await channel.send(buildBanListMessage(GuildManager.listBans()))
+  async banList({ channel, args = [] }){
+    this.app.log.broadcast('Ban List ' + args.join(' '), 'Command')
+    const username = args.filter(Boolean)[0]
+
+    if (!username) {
+      return channel.send(buildBanListMessage(GuildManager.listBans(), GuildManager.listFormerBans(), this.app.config.discord.prefix))
+    }
+
+    try {
+      const record = await GuildManager.getPlayerBanRecord(username)
+      if (!record) return channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't find a player called **${username}**.` }] })
+      await channel.send(buildBanRecordMessage(record))
+    } catch (err) {
+      this.app.log.error(`Ban history failed for ${username}: ${err.message}`)
+      await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't load the ban history for **${username}**: ${err.message}` }] })
+    }
   }
 
   async invite({ channel, args }){
@@ -313,7 +417,7 @@ class DiscordManager extends CommunicationBridge {
       return channel.send({ embeds: [{
         color: 0xDA373C,
         title: `⛔ ${banned.name} is banned, so they weren't invited`,
-        description: `${formatBan(banned.ban)}\n\nTo invite them anyway: \`${prefix}invite ${banned.name} force\`\nTo remove the ban: \`${prefix}unban ${banned.name}\``
+        description: `${formatBan(banned.ban)}\n\nTo invite them anyway: \`${prefix}invite ${banned.name} force\`\nTo remove the ban: \`${prefix}unban ${banned.name} <reason>\``
       }] })
     }
 
@@ -324,6 +428,18 @@ class DiscordManager extends CommunicationBridge {
     if (banned) {
       await channel.send({ embeds: [{ color: 0xF0B232, description: `⚠️ Invited **${banned.name}** even though they're banned (${banned.ban.reason ?? "no reason given"}).` }] })
     }
+  }
+
+  warnOfficersOfBannedRequest(name, ban){
+    if (this.app.minecraft.bot?.player === undefined) return
+
+    const date = new Date(ban.at * 1000).toLocaleDateString("en-CA", { timeZone: "America/New_York" })
+    const start = `/oc [Ban list] ${name} sent a join request but is BANNED - check Discord before accepting. Reason: `
+    const end = ` (by ${ban.by ?? "unknown"}, ${date})`
+    let reason = ban.reason ?? "none given"
+    const room = 256 - start.length - end.length
+    if (reason.length > room) reason = `${reason.slice(0, Math.max(room - 3, 0))}...`
+    this.app.minecraft.bot.chat(`${start}${reason}${end}`)
   }
 
   async bannedPlayerAccepted({ channel, name, by }){
@@ -357,22 +473,38 @@ class DiscordManager extends CommunicationBridge {
     })
   }
 
-  async bannedPlayerAction({ message, action, name, by }){
+  bannedPlayerReasonModal({ action, name, messageId }){
+    const unban = action === "unban"
+    return new ModalBuilder()
+      .setCustomId(`bannedjoinee-${action}-reason ${messageId} ${name}`)
+      .setTitle(`${unban ? "Unban" : "Kick"} ${name}`.slice(0, 45))
+      .addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("reason")
+          .setLabel(unban ? "Why are they being unbanned?" : "Kick reason (shown in-game)")
+          .setPlaceholder(unban ? "e.g. appealed and apologised" : "e.g. still banned for scamming")
+          .setStyle(unban ? TextInputStyle.Paragraph : TextInputStyle.Short)
+          .setMinLength(2)
+          .setMaxLength(unban ? 300 : 180)
+          .setRequired(true)
+      ))
+  }
+
+  async bannedPlayerAction({ message, action, name, by, byName, reason }){
     let outcome
     let done = true
 
     try {
       if (action === "unban") {
-        const result = await GuildManager.unbanPlayer(name)
-        outcome = result.removed ? `✅ Unbanned by ${by}` : `ℹ️ ${name} was already unbanned`
+        const result = await GuildManager.unbanPlayer(name, reason, byName)
+        outcome = result.removed ? `✅ Unbanned by ${by}: *${reason}*` : `ℹ️ ${name} was already unbanned`
       } else {
-        const banned = await GuildManager.checkBan(name)
-        const kickReason = `Banned: ${banned?.ban.reason ?? "No reason given"}`.slice(0, 200)
+        const kickReason = reason.slice(0, 180)
         if (this.app.minecraft.bot?.player !== undefined) {
           this.app.minecraft.bot.chat(`/g kick ${name} ${kickReason}`)
-          outcome = `👢 Kicked by ${by} with: *${kickReason}*`
+          outcome = `👢 Kicked by ${by}: *${kickReason}*`
         } else {
-          outcome = `⚠️ ${by} tried to kick, but the bot isn't online in Minecraft. Try again once it's back.`
+          outcome = `⚠️ ${by} tried to kick (*${kickReason}*), but the bot isn't online in Minecraft. Try again once it's back.`
           done = false
         }
       }
@@ -384,29 +516,11 @@ class DiscordManager extends CommunicationBridge {
 
     const embed = EmbedBuilder.from(message.embeds[0])
     const previous = embed.data.fields?.find(f => f.name === "Outcome")?.value
-    embed.setFields({ name: "Outcome", value: previous ? `${previous}\n${outcome}` : outcome })
+    embed.setFields({ name: "Outcome", value: `${previous ? `${previous}\n` : ""}${outcome}`.slice(-1024) })
 
-    const components = done
-      ? message.components.map(row => new ActionRowBuilder().addComponents(
-          row.components.map(button => ButtonBuilder.from(button).setDisabled(true))
-        ))
-      : message.components
+    const components = done ? [] : message.components
 
     await message.edit({ embeds: [embed], components })
-  }
-
-  async joinRequestProfile({ message, name, profileId }){
-    try {
-      const info = await GuildManager.getMemberInfo(this.app, name)
-      if (!info) return
-
-      const components = message.components.map(row =>
-        row.components[0]?.customId?.startsWith("joinreq-profile:") ? buildJoinRequestProfileRow(info, profileId) ?? row : row
-      )
-      await message.edit({ embeds: [message.embeds[0], ...buildJoinRequestEmbeds({ ...info, profileId })], components })
-    } catch (err) {
-      this.app.log.error(`Join request profile switch failed for ${name}: ${err.message}`)
-    }
   }
 
   guildOnline({ guildName, groups, chatTypes }){
@@ -457,6 +571,7 @@ class DiscordManager extends CommunicationBridge {
         stats: info.stats,
         rules: info.rules,
         ban: info.ban,
+        banHistory: info.banHistory,
         thumbnail: this.app.config.discord.thumbnail
       }))
     } catch (err) {
@@ -593,6 +708,7 @@ class DiscordManager extends CommunicationBridge {
         stats: info.stats,
         rules: info.rules,
         ban: info.ban,
+        banHistory: info.banHistory,
         thumbnail: this.app.config.discord.thumbnail,
         page,
         profileId

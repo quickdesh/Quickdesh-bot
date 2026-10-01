@@ -254,7 +254,7 @@ function dungeonRunsBlock(d) {
     ))
 }
 
-function memberEmbed({ name, uuid, member, stats, thumbnail, ban }) {
+function memberEmbed({ name, uuid, member, stats, thumbnail, ban, banHistory }) {
     const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
     const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
 
@@ -276,6 +276,10 @@ function memberEmbed({ name, uuid, member, stats, thumbnail, ban }) {
 
     if (ban) {
         embed.addFields({ name: "⛔ Banned", value: formatBan(ban), inline: false })
+    }
+
+    if (banHistory?.length) {
+        embed.addFields({ name: `📜 Previously Banned (${banHistory.length})`, value: formatFormerBan(latestFormerBan(banHistory)), inline: false })
     }
 
     if (Array.isArray(member?.["Old names"]) && member["Old names"].length) {
@@ -389,11 +393,11 @@ function pickProfile(stats, profileId = null) {
     }
 }
 
-function buildMemberInfoMessage({ name, uuid, member, stats: rawStats, thumbnail, rules = getSessionRules(), page = "member", profileId = null, ban = null }) {
+function buildMemberInfoMessage({ name, uuid, member, stats: rawStats, thumbnail, rules = getSessionRules(), page = "member", profileId = null, ban = null, banHistory = [] }) {
     const profiles = rawStats?.profiles ?? []
     const { stats, profile } = pickProfile(rawStats, profileId)
 
-    const pages = { member: memberEmbed({ name, uuid, member, stats, thumbnail, ban }) }
+    const pages = { member: memberEmbed({ name, uuid, member, stats, thumbnail, ban, banHistory }) }
 
     const activity = activityEmbed({ member, stats, rules })
     if (activity) pages.activity = activity
@@ -462,7 +466,20 @@ function formatBan(ban) {
     ].join("\n")
 }
 
-function buildBanListMessage(bans) {
+function formatFormerBan(entry) {
+    return [
+        `**Banned:** <t:${entry.at}:d> by ${entry.by ?? "Unknown"} · ${entry.reason ?? "No reason given"}`,
+        `**Unbanned:** <t:${entry.unbannedAt}:d> by ${entry.unbannedBy ?? "Unknown"} · ${entry.unbanReason ?? "No reason given"}`
+    ].join("\n")
+}
+
+function latestFormerBan(history) {
+    return history.reduce((latest, entry) => entry.unbannedAt >= latest.unbannedAt ? entry : latest)
+}
+
+const FORMER_BANS_SHOWN = 10
+
+function buildBanListMessage(bans, former = [], prefix = "+") {
     const embed = new EmbedBuilder()
         .setColor(COLORS.inactive)
         .setTitle(`⛔ Ban List (${bans.length})`)
@@ -470,13 +487,38 @@ function buildBanListMessage(bans) {
 
     if (bans.length === 0) {
         embed.setDescription("Nobody is banned.")
-        return { embeds: [embed] }
+    } else {
+        const lines = bans.map(b =>
+            `**${escapeName(b.name)}** · <t:${b.at}:d> · by ${b.by ?? "Unknown"}${b.reason ? ` · ${b.reason}` : ""}`
+        )
+        embed.addFields(...chunkItems("Banned players (newest first)", lines, "\n"))
     }
 
-    const lines = bans.map(b =>
-        `**${escapeName(b.name)}** · <t:${b.at}:d> · by ${b.by ?? "Unknown"}${b.reason ? ` · ${b.reason}` : ""}`
-    )
-    embed.addFields(...chunkItems("Banned players (newest first)", lines, "\n"))
+    if (former.length) {
+        const shown = former.slice(0, FORMER_BANS_SHOWN)
+        const lines = shown.map(f => `**${escapeName(f.name)}**\n${formatFormerBan(f)}`)
+        const title = `📜 Former bans (${former.length}, latest unban first${former.length > shown.length ? `, showing ${shown.length}` : ""})`
+        embed.addFields(...chunkItems(title, lines, "\n\n"))
+        embed.setFooter({ text: `${prefix}banlist <ign> shows one player's full ban history` })
+    }
+
+    return { embeds: [embed] }
+}
+
+function buildBanRecordMessage(record) {
+    const embed = new EmbedBuilder()
+        .setColor(record.ban ? COLORS.inactive : COLORS.member)
+        .setTitle(`📜 Ban history: ${record.name}`)
+        .setDescription(`🆔 \`${record.uuid}\``)
+        .setTimestamp(Date.now())
+
+    embed.addFields({ name: record.ban ? "⛔ Currently banned" : "✅ Not currently banned", value: record.ban ? formatBan(record.ban) : "\u200b", inline: false })
+
+    if (record.history.length) {
+        embed.addFields(...chunkItems(`Former bans (${record.history.length}, latest first)`, record.history.map(formatFormerBan), "\n\n"))
+    } else {
+        embed.addFields({ name: "Former bans", value: "None", inline: false })
+    }
 
     return { embeds: [embed] }
 }
@@ -726,4 +768,4 @@ function buildExemptionListMessage(exemptions) {
     return { embeds: [embed] }
 }
 
-module.exports = { formatBan, buildBanListMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }
+module.exports = { formatBan, formatFormerBan, latestFormerBan, buildBanListMessage, buildBanRecordMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }

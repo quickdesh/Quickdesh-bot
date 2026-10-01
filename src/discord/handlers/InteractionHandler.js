@@ -16,10 +16,30 @@ class InteractionHandler {
         if (butt.isStringSelectMenu?.() && butt.customId.startsWith("joinreq-profile:")) {
             await butt.deferUpdate()
             const [, name] = butt.customId.split(":")
-            return this.discord.joinRequestProfile({ message: butt.message, name, profileId: butt.values[0] })
+            return this.discord.joinRequestDetails({ message: butt.message, name, show: true, profileId: butt.values[0] })
+        }
+
+        if (butt.isModalSubmit?.() && butt.customId.startsWith("bannedjoinee-")) {
+            const [id, messageId, player] = butt.customId.split(" ")
+            const action = id.split("-")[1]
+            await butt.deferUpdate()
+            const message = butt.message ?? await butt.channel.messages.fetch(messageId)
+            return this.discord.bannedPlayerAction({
+                message,
+                action,
+                name: player,
+                by: `${butt.user}`,
+                byName: butt.user.username,
+                reason: butt.fields.getTextInputValue("reason").trim()
+            })
         }
 
         if (!butt.isButton()) return
+
+        if (butt.customId.startsWith("bannedjoinee-")) {
+            const [id, player] = butt.customId.split(" ")
+            return butt.showModal(this.discord.bannedPlayerReasonModal({ action: id.split("-")[1], name: player, messageId: butt.message.id }))
+        }
         
         if (butt.isButton()){
             await butt.deferUpdate()
@@ -28,9 +48,14 @@ class InteractionHandler {
             const [, page, name, profileId] = butt.customId.split(":")
             return this.discord.memberInfoPage({ message: butt.message, page, name, profileId })
         }
+        if (butt.customId.startsWith("joinreq-details:")) {
+            const [, mode, name] = butt.customId.split(":")
+            return this.discord.joinRequestDetails({ message: butt.message, name, show: mode == "show" })
+        }
+
         const [action, player] = butt.customId.split(" ")
         if (action == "acceptjoinee" || action == "rejectjoinee") {
-            await butt.message.edit({ embeds: butt.message.embeds, components: butt.message.components.slice(1) })
+            await this.discord.joinRequestCollapse(butt.message, { removeVerdict: true })
 
             if (action == "acceptjoinee") {
                 this.discord.app.minecraft.bot.chat(`/g accept ${player}`)
@@ -42,10 +67,6 @@ class InteractionHandler {
             if (action == "acceptjoinee") {
                 await this.discord.bannedPlayerAccepted({ channel: butt.message.channel, name: player, by: `${butt.user}` })
             }
-        }
-
-        if (action == "bannedjoinee-unban" || action == "bannedjoinee-kick") {
-            return this.discord.bannedPlayerAction({ message: butt.message, action: action.split("-")[1], name: player, by: `${butt.user}` })
         }
     }
 

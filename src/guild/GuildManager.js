@@ -91,7 +91,8 @@ async function getMemberInfo(app, username) {
         member: key ? data[key] : null,
         stats,
         rules: ActivityCheckHandler.getSessionRules(),
-        ban: BanListHandler.getBan(uuid)
+        ban: BanListHandler.getBan(uuid),
+        banHistory: BanListHandler.getHistory(uuid)
     }
 }
 
@@ -203,14 +204,15 @@ async function banPlayer(username, reason, by) {
     const player = await resolvePlayer(username)
     if (!player) return null
 
+    const now = Math.floor(Date.now() / 1000)
     const previous = BanListHandler.getBan(player.uuid)
-    const ban = { name: player.name, reason: reason || null, by, at: Math.floor(Date.now() / 1000) }
-    BanListHandler.addBan(player.uuid, ban)
+    const ban = { name: player.name, reason: reason || null, by, at: now }
+    BanListHandler.addBan(player.uuid, ban, { unbannedAt: now, unbannedBy: by, unbanReason: "Replaced by a new ban" })
 
-    return { ...player, ban, previous }
+    return { ...player, ban, previous, history: BanListHandler.getHistory(player.uuid) }
 }
 
-async function unbanPlayer(username) {
+async function unbanPlayer(username, reason, by) {
     const bans = BanListHandler.listBans()
     const lower = username.toLowerCase()
     let uuid = Object.keys(bans).find(u => bans[u].name.toLowerCase() === lower)
@@ -220,8 +222,9 @@ async function unbanPlayer(username) {
         uuid = player?.uuid
     }
 
-    const removed = uuid ? BanListHandler.removeBan(uuid) : null
-    return { name: removed?.name ?? username, removed }
+    const unban = { unbannedAt: Math.floor(Date.now() / 1000), unbannedBy: by, unbanReason: reason || null }
+    const removed = uuid ? BanListHandler.removeBan(uuid, unban) : null
+    return { name: removed?.name ?? username, uuid, removed: removed ? { ...removed, ...unban } : null }
 }
 
 async function checkBan(username) {
@@ -235,13 +238,41 @@ function getBanByUuid(uuid) {
     return BanListHandler.getBan(uuid)
 }
 
-function listBans() {
-    const data = UuidAndRanksHandler.loadExisting()
-    const nameByUuid = new Map(Object.entries(data).filter(([, r]) => r?.uuid).map(([k, r]) => [r.uuid, k]))
+function getBanHistoryByUuid(uuid) {
+    return BanListHandler.getHistory(uuid)
+}
 
+function nameLookup() {
+    const data = UuidAndRanksHandler.loadExisting()
+    return new Map(Object.entries(data).filter(([, r]) => r?.uuid).map(([k, r]) => [r.uuid, k]))
+}
+
+function listBans() {
+    const nameByUuid = nameLookup()
     return Object.entries(BanListHandler.listBans())
         .map(([uuid, ban]) => ({ ...ban, uuid, name: nameByUuid.get(uuid) ?? ban.name }))
         .sort((a, b) => b.at - a.at)
+}
+
+function listFormerBans() {
+    const nameByUuid = nameLookup()
+    return BanListHandler.listHistory()
+        .reverse()
+        .map(entry => ({ ...entry, name: nameByUuid.get(entry.uuid) ?? entry.name }))
+        .sort((a, b) => b.unbannedAt - a.unbannedAt)
+}
+
+async function getPlayerBanRecord(username) {
+    const lower = username.toLowerCase()
+    const known = [...listBans(), ...listFormerBans()].find(entry => entry.name.toLowerCase() === lower)
+    const player = known ? { uuid: known.uuid, name: known.name } : await resolvePlayer(username)
+    if (!player) return null
+
+    return {
+        ...player,
+        ban: BanListHandler.getBan(player.uuid),
+        history: listFormerBans().filter(entry => entry.uuid === player.uuid)
+    }
 }
 
 module.exports = {
@@ -249,7 +280,10 @@ module.exports = {
     unbanPlayer,
     checkBan,
     getBanByUuid,
+    getBanHistoryByUuid,
     listBans,
+    listFormerBans,
+    getPlayerBanRecord,
     startGuildSync,
     getActivityReport,
     getActivityDefaults,
