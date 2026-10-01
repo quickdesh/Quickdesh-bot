@@ -49,10 +49,6 @@ class DiscordCommand {
 		this.chatHandler.setCommandChatTypes(chatTypes)
 	}
 
-	setforceFullGuildRefresh(forceFullRefresh = false) {
-		this.chatHandler.setforceFullGuildRefresh(forceFullRefresh)
-	}
-	
 
 	onCommand(message) {
 		throw new Error('Command onCommand method is not implemented yet!')

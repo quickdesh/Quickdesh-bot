@@ -235,4 +235,4 @@ async function syncUuidAndRanks(input) {
     return confirmed
 }
 
-module.exports = { syncUuidAndRanks, findKey, fetchNameByUuid, formatUUID, loadExisting, save }
+module.exports = { syncUuidAndRanks, findKey, fetchBatch, fetchNameByUuid, formatUUID, loadExisting, save }

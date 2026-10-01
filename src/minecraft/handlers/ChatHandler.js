@@ -2,21 +2,10 @@ const EventHandler = require('../../contracts/EventHandler')
 const mineflayer = require('mineflayer')
 const GuildManager = require('../../guild/GuildManager.js')
 
-var gname= ""
-var online=""
-var total=""
-var gm=""
-var gr=""
 var fl=[]
-var mem_exp=""
-var mem_name=""
-var mem_rank=""
-var mem_join=""
-var lineType="none"
-var isMemName=false
+var guildOnlineOutput = null
 
 var commandChatTypes = []
-var forceFullGuildRefresh = false
 
 class StateHandler extends EventHandler {
 	constructor(minecraft, command) {
@@ -28,10 +17,6 @@ class StateHandler extends EventHandler {
 
 	setCommandChatTypes(chatTypes){
 		commandChatTypes = chatTypes
-	}
-
-	setforceFullGuildRefresh(forceFullRefresh = false) {
-		forceFullGuildRefresh = forceFullRefresh
 	}
 
 	registerEvents(bot) {
@@ -61,68 +46,40 @@ class StateHandler extends EventHandler {
 		message.indexOf("New themes can be unlocked using Mystery Dust!") == -1) 
 		console.log(message)
 
-		if (this.Guild_Name(message)) {
-			gname= ""
-		 	online=""
-			total=""
-			gm=""
-			gr=""
-			lineType="none"
-			
-			gname=(`${message}`)
-			return 
-		}
-
-		if (this.Guild_members(message)) {
-			
-			gm+=(`${message},`)
-
-		}
-
-		if (this.Rank(message)) {
-			
-			gr+=(`${message},`)
-
-			
-		}
-
-		if (this.Tot_Memebers(message)) {
-			
-			total=(`${message}`)
-
-		}
-
-		if (this.On_Memebers(message)) {
-			
-			online=(`${message}`)
-			lineType="Guild_List"
-				
-		}
-		if (this.Guild_Name_Name(message)){
-			isMemName = true
-		}
-		if (this.Member_Name(message)){
-			if (!this.Guild_Name_Name(message)) {
-				isMemName = false
-				mem_name=message.trim()
+		if (this.isGuildNameLine(message)) {
+			guildOnlineOutput = {
+				guildName: message.replace("Guild Name: ", "").trim(),
+				groups: [],
+				complete: false
 			}
-		}
-		if (this.Member_Rank(message)){
-			mem_rank=message
-		}
-		if (this.Member_Join(message)){
-			mem_join=message
+			return
 		}
 
+		if (guildOnlineOutput) {
+			if (this.isRankHeader(message)) {
+				guildOnlineOutput.groups.push({ rank: message.replace(/--/g, "").trim(), names: [] })
+				return
+			}
 
-		if (this.Member_Info(message)) {
-			
-			lineType="Member_Info"
-				
-		}
+			if (message.includes("●") && guildOnlineOutput.groups.length) {
+				const names = [...message.matchAll(/(?:\[[^\]]*\]\s*)?(\w{1,16})\s*●/g)].map(m => m[1])
+				guildOnlineOutput.groups[guildOnlineOutput.groups.length - 1].names.push(...names)
+				return
+			}
 
-		if (this.Member_Guild_Exp(message)) {
-			mem_exp += message.trim() + "\n"
+			if (message.startsWith("Online Members:")) {
+				guildOnlineOutput.complete = true
+				return
+			}
+
+			if (this.Line(message)) {
+				const output = guildOnlineOutput
+				guildOnlineOutput = null
+
+				if (output.complete) {
+					return this.minecraft.guildOnline({ guildName: output.guildName, groups: output.groups, chatTypes: commandChatTypes })
+				}
+			}
 		}
 
 		if (this.isFriendList(message)){
@@ -135,31 +92,6 @@ class StateHandler extends EventHandler {
 			fl.push(flist)
 			return this.minecraft.friendList({list : fl})
 		}
-		if(this.Line(message)){
-			if(lineType=="Guild_List"){
-				lineType="none"
-				GuildManager.loadPlayers(gr, gm)
-				return this.minecraft.guildList({title : gname, g1 : gr, g2 : gm, mem : total, chatTypes: commandChatTypes})
-			
-			}else if(lineType=="Guild_Online"){
-				lineType="none"
-				return this.minecraft.guildOnline({title : gname, g1 : gr, g2 : gm, on : online, chatTypes: commandChatTypes})
-
-			}else if(lineType=="Member_Info"){
-				lineType="none"
-				let exp = mem_exp.trim()
-				mem_exp = ""
-				return this.minecraft.memberInformation({player: mem_name, rank: mem_rank, joined: mem_join, exp: exp, chatTypes: commandChatTypes})
-
-			}
-			
-			
-		}
-
-		if (this.Off_Memebers(message)) {
-			lineType="Guild_Online"
-		}
-		
 		if (this.isLoginMessage(message)) {
 			let user = message.split('>')[1].trim().split('joined.')[0].trim()
 
@@ -538,47 +470,14 @@ class StateHandler extends EventHandler {
 	}
 
 	
-	On_Memebers(message) {
-		return message.startsWith(`Online Members:`)
-		
-	}
-	Tot_Memebers(message) {
-		return message.startsWith(`Total Members:`)
-		
-	}
-	Off_Memebers(message) {
-		return message.startsWith(`Offline Members:`)
-		
-	}
-	Rank(message) {
-		return message.includes("-- ")
-	}
-	Guild_Name(message) {
+	isGuildNameLine(message) {
 		return message.startsWith("Guild Name: ")
 	}
 
-	Guild_members(message) {
-		return message.includes('●')
-	}
-	Guild_Name_Name(message) {
-		return message.includes(this.minecraft.app.config.discord.guildname)
-	}
-	Member_Name(message) {
-		return isMemName
-	}
-	Member_Rank(message) {
-		return message.includes("Rank: ")
-	}
-	Member_Join(message) {
-		return message.includes("Joined: ")
+	isRankHeader(message) {
+		return /^-- .+ --$/.test(message)
 	}
 
-	Member_Info(message) {
-		return message.includes("Guild Exp Contributions:")
-	}
-	Member_Guild_Exp(message) {
-		return message.trim().endsWith("Guild Experience")
-	}
 	Line(message) {
 		return message.startsWith("-----") && message.endsWith('-----')
 		

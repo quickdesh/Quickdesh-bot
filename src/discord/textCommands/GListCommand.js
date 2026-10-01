@@ -11,12 +11,7 @@ class GListCommand extends DiscordCommand {
 	}
 
 	onCommand(message) {
-
-		let chatType = this.getChannelType(message)
-		this.setChatTypes(chatType)
-		this.setforceFullGuildRefresh(false)
-		this.sendMinecraftMessage(`/g list`)
-		
+		this.discord.guildList({ channel: message.channel })
 	}
 }
 

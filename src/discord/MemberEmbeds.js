@@ -63,10 +63,32 @@ function loadMemberData(username) {
     return key ? data[key] : null
 }
 
-function formatJoined(joined) {
-    const parts = joined?.split(" ")[1]?.split("-")
-    if (!parts || parts.length < 3) return joined || "Unknown"
-    return `${Number(parts[2])} ${MONTHS[Number(parts[1]) - 1]} ${parts[0]}`
+function escapeName(name) {
+    return name.replace(/_/g, "\\_")
+}
+
+function chunkFields(title, names) {
+    const fields = []
+    let current = []
+    let length = 0
+
+    for (const name of names) {
+        const piece = `${escapeName(name)} ●`
+        if (current.length && length + piece.length + 1 > 1024) {
+            fields.push(current)
+            current = []
+            length = 0
+        }
+        current.push(piece)
+        length += piece.length + 1
+    }
+    if (current.length) fields.push(current)
+
+    return fields.map((group, i) => ({
+        name: i === 0 ? `-- ${title} --` : "\u200b",
+        value: group.join(" "),
+        inline: false
+    }))
 }
 
 function statsSince(sessions, since, now) {
@@ -241,23 +263,27 @@ function dungeonRunsBlock(d) {
     ))
 }
 
-function memberEmbed({ player, rank, joined, exp, member, stats, thumbnail }) {
+function memberEmbed({ name, member, stats, thumbnail }) {
     const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
+    const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
+
+    const guild = stats?.guild
+    const guildFailed = stats?.errors?.some(e => e.startsWith("Guild"))
+    const rank = guild?.rank ?? (guildFailed ? member?.guild_rank ?? "Unknown" : "Not in guild")
+    const joined = guild?.joined ? `<t:${guild.joined}:D>` : "Unknown"
 
     const embed = new EmbedBuilder()
         .setColor(COLORS.member)
-        .setTitle(player)
+        .setTitle(`${hypixelRank}${name}`)
         .setThumbnail(thumbnail)
         .addFields(
-            { name: "🏷️ Rank", value: rank.replace("Rank: ", ""), inline: true },
-            { name: "📅 Joined", value: formatJoined(joined), inline: true }
+            { name: "🏷️ Rank", value: rank, inline: true },
+            { name: "📅 Joined", value: joined, inline: true }
         )
         .addFields(...statusFields(sessions))
 
-    if (stats?.guild?.days?.length) {
-        embed.addFields({ name: "📈 Guild Exp", value: guildExpBlock(stats.guild), inline: false })
-    } else if (exp) {
-        embed.addFields({ name: "📈 Guild Exp", value: exp.slice(0, 1024), inline: false })
+    if (guild?.days?.length) {
+        embed.addFields({ name: "📈 Guild Exp", value: guildExpBlock(guild), inline: false })
     }
 
     if (sessions.length) {
@@ -299,21 +325,69 @@ function linkButtons(username) {
     )
 }
 
-function buildMemberInfoMessage({ player, username, rank, joined, exp, member, stats, thumbnail }) {
-    const embeds = [memberEmbed({ player, rank, joined, exp, member, stats, thumbnail })]
+function buildMemberInfoMessage({ name, member, stats, thumbnail }) {
+    const embeds = [memberEmbed({ name, member, stats, thumbnail })]
 
     if (stats?.skyblock) {
         embeds.push(skyblockEmbed(stats))
         embeds.push(dungeonsEmbed(stats))
     } else {
-        embeds[0].addFields({ name: "🏝️ SkyBlock", value: member?.uuid ? "Not available right now" : "Player not tracked yet", inline: false })
+        const reason = stats?.errors?.some(e => e.startsWith("SkyBlock")) ? "Not available right now" : "No SkyBlock profile found"
+        embeds[0].addFields({ name: "🏝️ SkyBlock", value: reason, inline: false })
     }
 
     const last = embeds[embeds.length - 1]
     last.setTimestamp(Date.now())
     if (stats?.errors?.length) last.setFooter({ text: stats.errors.join(" | ").slice(0, 2048) })
 
-    return { embeds, components: [linkButtons(username)] }
+    return { embeds, components: [linkButtons(name)] }
 }
 
-module.exports = { buildMemberInfoMessage, loadMemberData }
+function buildGuildListMessage(guild, { thumbnail, lobbyHolder }) {
+    const isBot = name => lobbyHolder && name.toLowerCase() === lobbyHolder.toLowerCase()
+    const members = guild.members.filter(m => !isBot(m.name))
+    const ranks = [...guild.ranks, ...new Set(members.map(m => m.rank).filter(r => !guild.ranks.includes(r)))]
+
+    const embed = new EmbedBuilder()
+        .setColor(COLORS.member)
+        .setTitle(guild.name)
+        .setThumbnail(thumbnail)
+        .setTimestamp(Date.now())
+        .setFooter({ text: `Total Members: ${guild.totalMembers - (guild.members.length - members.length)}` })
+
+    for (const rank of ranks) {
+        const names = members
+            .filter(m => m.rank === rank)
+            .map(m => m.name)
+
+        if (names.length) embed.addFields(...chunkFields(rank, names))
+    }
+
+    return { embeds: [embed] }
+}
+
+function buildGuildOnlineMessage({ guildName, groups }, { thumbnail, lobbyHolder }) {
+    const isBot = name => lobbyHolder && name.toLowerCase() === lobbyHolder.toLowerCase()
+    const visible = groups
+        .map(g => ({ rank: g.rank, names: g.names.filter(n => !isBot(n)) }))
+        .filter(g => g.names.length)
+
+    const embed = new EmbedBuilder()
+        .setColor(COLORS.member)
+        .setTitle(guildName)
+        .setThumbnail(thumbnail)
+        .setTimestamp(Date.now())
+        .setFooter({ text: `Online Members: ${visible.reduce((sum, g) => sum + g.names.length, 0)}` })
+
+    if (visible.length === 0) {
+        embed.addFields({ name: "No one is online at the moment", value: "⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾", inline: false })
+    }
+
+    for (const group of visible) {
+        embed.addFields(...chunkFields(group.rank, group.names))
+    }
+
+    return { embeds: [embed] }
+}
+
+module.exports = { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage, loadMemberData }

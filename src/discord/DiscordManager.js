@@ -7,8 +7,8 @@ const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
-const { getPlayerStats } = require("../guild/handlers/HypixelStatsHandler.js")
-const { buildMemberInfoMessage, loadMemberData } = require("./MemberEmbeds")
+const GuildManager = require("../guild/GuildManager.js")
+const { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -158,19 +158,13 @@ class DiscordManager extends CommunicationBridge {
   }
 
   getChatChannels(chatTypes){
-
-    for(let i = 0; i<= chatTypes.length; i++){
-
-      if (chatTypes[i] == "guild") chatTypes[i] = this.app.config.discord.gcchannel
-
-      if (chatTypes[i] == "officer") chatTypes[i] = this.app.config.discord.occhannel
-
-      if (chatTypes[i] == "message") chatTypes[i] = this.app.config.discord.dmchannel
-
-      if (chatTypes[i] == "joinleave") chatTypes[i] = this.app.config.discord.joinleavechannel
-
+    const channels = {
+      guild: this.app.config.discord.gcchannel,
+      officer: this.app.config.discord.occhannel,
+      message: this.app.config.discord.dmchannel,
+      joinleave: this.app.config.discord.joinleavechannel
     }
-    return chatTypes
+    return chatTypes.map(type => channels[type] ?? type)
   }
 
   onBroadcastCleanEmbed({ message, color }) {
@@ -262,129 +256,57 @@ class DiscordManager extends CommunicationBridge {
       })}
 
   }
-  guildOnline({title,g1,g2,on,chatTypes}){
+  guildOnline({ guildName, groups, chatTypes }){
+    this.app.log.broadcast('Guild Online', 'Command')
 
-		this.app.log.broadcast('Guild Online', 'Command')
-
-		const name = title.split("Guild Name: ")
-		const onlineMembers = on.split(": ")[0] + ": " + (parseInt(on.split(":")[1])-1).toString() // Subtract 1 player (bot) from the given number
-		const guildRanks = g1.slice(0 , -1).split(",") 
-		const guildMembers = g2.slice(0 , -1).split(",")
-
-    var chatChannels = this.getChatChannels(chatTypes)
-    
-    for(let i = 0; i < chatChannels.length; i++)
-
-		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
-
-			if((guildMembers[guildMembers.length-1]=="") && (guildMembers.length==1)){
-				const embed1 = new EmbedBuilder()
-				.setTitle(`${name[1]}`)
-  			.setColor(0x47F049)
-				.setTimestamp(Date.now())
-				.setFooter({ text : onlineMembers })
-				.setThumbnail(this.app.config.discord.thumbnail)
-				.addFields({name: "No one is online at the moment", value:  "⁽ᴵ ᶠᵉᵉˡ ˡᵒⁿᵉˡʸ⁾", inline: false})
-				channel.send({ embeds: [embed1] })
-
-			}else{
-				
-				if(guildMembers[guildMembers.length-1]==""){
-					guildMembers.pop()
-				}
-				const embed2 = new EmbedBuilder()
-				.setTitle(`${name[1]}`)
-				.setColor(0x47F049)
-				.setTimestamp(Date.now())
-				.setFooter({ text : onlineMembers } )
-				.setThumbnail(this.app.config.discord.thumbnail)
-				for (let i = 0; i <guildRanks.length; i++){
-          if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
-
-          // if (guildMembers.length == 2 && i == 1) embed2.addFields("<:blank:983742482351263744>","<:blank:983742482351263744>",false)
-
-					embed2.addFields({ name: guildRanks[i], value: guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
-                                      .replace(/\●  /g,'● ')  // Fix spacing between player names
-                                      .replace(/_/g,"\\_")  // Fix underscores causing italics
-                                      .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''), inline: false})   // Remove Bot from embed
-        }
-        channel.send({ embeds: [embed2] })
-				
-			}
-		})}
-	
-
-	}
-	guildList({title,g1,g2,mem,chatTypes}){
-
-		this.app.log.broadcast('Guild List', 'Command')
-
-		const name = title.split("Guild Name: ")
-		const totalMembers = mem.split(": ")[0] + ": " + (parseInt(mem.split(":")[1])-1).toString()
-		const guildRanks = g1.slice(0 , -1).split(",") 
-		const guildMembers = g2.slice(0 , -1).split(",")
-
-    var chatChannels = this.getChatChannels(chatTypes)
-    
-    for(let i = 0; i < chatChannels.length; i++)
-
-		{this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
-
-			const embed = new EmbedBuilder()
-			.setTitle(`${name[1]}`)
-  		.setColor(0x47F049)
-			.setTimestamp(Date.now())
-      .setFooter({ text: totalMembers })
-			.setThumbnail(this.app.config.discord.thumbnail)
-			for (let i = 0; i <guildRanks.length; i++){
-
-        if(guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'') == ` ${this.app.config.minecraft.lobbyHolder} ●`) continue
-
-				embed.addFields({ name: guildRanks[i], value: guildMembers[i].replace(/\[(..P\+?\+?)\]/g,'')  // Remove player ranks
-                                   .replace(/\●  /g,'● ')  // Fix spacing between player names
-                                   .replace(/_/g,"\\_")  // Fix underscores causing italics
-                                   .replace(`${this.app.config.minecraft.lobbyHolder} ● `,''), inline: false})   // Remove Bot from embed
-			}
-			
-			channel.send({ embeds: [embed] })
-		})}
-	
-
-	}
-  async memberInformation({player,rank,joined,exp,chatTypes}){
-    this.app.log.broadcast('Member Info of ' + player, 'Command')
-
-    var chatChannels = this.getChatChannels(chatTypes)
-
-    const username = player.replace(/\[.+\]\s*/, '')
-    const member = loadMemberData(username)
-
-    let stats = null
-    if (member?.uuid) {
-      try {
-        stats = await getPlayerStats(member.uuid, this.app.config.hypixel.apiKey)
-        for (const error of stats.errors) this.app.log.error(`Member info for ${username}: ${error}`)
-      } catch (err) {
-        this.app.log.error(`Member info for ${username}: ${err.message}`)
-      }
-    }
-
-    const message = buildMemberInfoMessage({
-      player,
-      username,
-      rank,
-      joined,
-      exp,
-      member,
-      stats,
-      thumbnail: this.app.config.discord.thumbnail
+    const message = buildGuildOnlineMessage({ guildName, groups }, {
+      thumbnail: this.app.config.discord.thumbnail,
+      lobbyHolder: this.app.config.minecraft.lobbyHolder
     })
 
-    for(let i = 0; i < chatChannels.length; i++)
+    for (const channelId of this.getChatChannels(chatTypes)) {
+      this.app.discord.client.channels.fetch(channelId).then(channel => channel.send(message))
+    }
+  }
 
-    {this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
-      channel.send(message)
-    })}
+  async guildList({ channel }){
+    this.app.log.broadcast('Guild List', 'Command')
+
+    try {
+      const guild = await GuildManager.getGuild(this.app)
+      await channel.send(buildGuildListMessage(guild, {
+        thumbnail: this.app.config.discord.thumbnail,
+        lobbyHolder: this.app.config.minecraft.lobbyHolder
+      }))
+    } catch (err) {
+      this.app.log.error(`Guild list failed: ${err.message}`)
+      await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't load the guild list: ${err.message}` }] })
+    }
+  }
+
+  async memberInformation({ username, channel }){
+    this.app.log.broadcast('Member Info of ' + username, 'Command')
+
+    try {
+      const info = await GuildManager.getMemberInfo(this.app, username)
+
+      if (!info) {
+        await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't find a player called **${username}**.` }] })
+        return
+      }
+
+      for (const error of info.stats.errors) this.app.log.error(`Member info for ${info.name}: ${error}`)
+
+      await channel.send(buildMemberInfoMessage({
+        name: info.name,
+        member: info.member,
+        stats: info.stats,
+        thumbnail: this.app.config.discord.thumbnail
+      }))
+    } catch (err) {
+      this.app.log.error(`Member info failed for ${username}: ${err.message}`)
+      await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't load member info: ${err.message}` }] })
+    }
   }
 
   friendList({list}){

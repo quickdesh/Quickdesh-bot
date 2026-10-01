@@ -11,13 +11,14 @@ class MemInfoCommand extends DiscordCommand {
 	}
 
 	onCommand(message) {
-		let args = this.getArgs(message)
-		let user = args.shift()
+		const user = this.getArgs(message).shift()
 
-		let chatType = this.getChannelType(message)
-		this.setChatTypes(chatType)
+		if (!user) {
+			message.channel.send({ embeds: [{ color: 0xDC143C, description: `Usage: \`${this.discord.app.config.discord.prefix}member <username>\`` }] })
+			return
+		}
 
-		this.sendMinecraftMessage(`/g member ${user ? user : ''}`)
+		this.discord.memberInformation({ username: user, channel: message.channel })
 	}
 }
 

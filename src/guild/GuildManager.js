@@ -1,6 +1,7 @@
 const UuidAndRanksHandler = require("./handlers/UuidAndRanksHandler.js")
 const SessionsHandler = require("./handlers/SessionsHandler.js")
-const GuildExpHandler = require("./handlers/GuildExpHandler.js")
+const GuildSyncHandler = require("./handlers/GuildSyncHandler.js")
+const { getPlayerStats } = require("./handlers/HypixelStatsHandler.js")
 
 async function ensureUser(input) {
     const player =
@@ -55,43 +56,46 @@ async function playerLeave(username, unixTime = Math.floor(Date.now() / 1000)) {
     await SessionsHandler.recordLeave(username, unixTime)
 }
 
-async function syncPlayers(players) {
-    if (!players || players.length === 0) return
-    await UuidAndRanksHandler.syncUuidAndRanks(players)
+function startGuildSync(app) {
+    GuildSyncHandler.start(app)
 }
 
-async function loadPlayers(gr, gm) {
-    const guildRanks = gr.slice(0 , -1).split(",")
-    const guildMembers = gm.slice(0 , -1).split(",")
+async function getGuild(app) {
+    return GuildSyncHandler.syncGuild(app)
+}
 
-    const regex = /(?:\[(.*?)\])?\s*([^\s●]+)\s*●/g
+async function getMemberInfo(app, username) {
 
-    for (let i = 0; i < guildRanks.length; i++) {
+    const data = UuidAndRanksHandler.loadExisting()
+    let key = UuidAndRanksHandler.findKey(data, username)
+    let uuid = key ? data[key].uuid : null
+    let name = key
 
-        const currentGuildRank = guildRanks[i].replace(/--/g, "").trim()
-        const memberBlock = guildMembers[i]
+    if (!uuid) {
+        const [profile] = await UuidAndRanksHandler.fetchBatch([username])
+        if (!profile) return null
 
-        const players = [...memberBlock.matchAll(regex)].map(m => ({
-            username: m[2],
-            hypixel_rank: m[1] || "Non",
-            guild_rank: currentGuildRank
-        }))
+        uuid = UuidAndRanksHandler.formatUUID(profile.id)
+        name = profile.name
+        key = Object.keys(data).find(k => data[k]?.uuid === uuid) ?? null
+    }
 
-        await syncPlayers(players)
+    const stats = await getPlayerStats(uuid, app.config.hypixel.apiKey)
+
+    return {
+        name: key ?? name,
+        member: key ? data[key] : null,
+        stats
     }
 }
 
-function startGuildExpSync(app) {
-    GuildExpHandler.start(app)
-}
-
 module.exports = {
-    startGuildExpSync,
+    startGuildSync,
+    getGuild,
+    getMemberInfo,
     playerJoin,
     playerLeave,
-    syncPlayers,
     ensureUser,
-    loadPlayers,
     playerGuildMotion,
     playerGuildNew
 }

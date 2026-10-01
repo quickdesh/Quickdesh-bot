@@ -19,7 +19,7 @@ class Application {
   async connect() {
     this.discord.connect()
     this.minecraft.connect()
-    GuildManager.startGuildExpSync(this)
+    GuildManager.startGuildSync(this)
   }
 }
 

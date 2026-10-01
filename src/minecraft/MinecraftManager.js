@@ -309,8 +309,6 @@ class MinecraftManager extends CommunicationBridge {
 				waity(2)
 				returntohouse()
 				a++
-				waity(5)
-				bot.chat("/g list")
 			}
 		})
 		bot.on('error', err => console.log(err))

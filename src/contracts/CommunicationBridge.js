@@ -19,14 +19,6 @@ class CommunicationBridge {
 		return this.bridge.guildOnline(event)
 	}
 
-	guildList(event) {
-		return this.bridge.guildList(event)
-	}
-
-	memberInformation(event) {
-		return this.bridge.memberInformation(event)
-	}
-
 	friendList(event) {
 		return this.bridge.friendList(event)
 	}
