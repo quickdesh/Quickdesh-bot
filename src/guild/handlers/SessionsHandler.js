@@ -49,6 +49,21 @@ function cleanupOldSessions(sessions, currentUnix) {
     return sessions.filter(s => s.join >= cutoff)
 }
 
+function setLastJoin(player) {
+
+    const sessions = player.last_sessions
+    const latest = sessions[sessions.length - 1]
+
+    delete player.last_sessions
+
+    player.last_join = new Date(latest.join * 1000)
+        .toISOString()
+        .replace("T", " ")
+        .replace(/\.\d+Z$/, " UTC")
+
+    player.last_sessions = sessions
+}
+
 async function recordJoin(username, unixTime) {
 
     const user = await ensureUserExists(username)
@@ -56,18 +71,12 @@ async function recordJoin(username, unixTime) {
 
     const { data, key } = user
 
-    data[key].last_join = new Date(unixTime * 1000)
-        .toISOString()
-        .replace("T", " ")
-        .replace(/\.\d+Z$/, " UTC")
+    if (!Array.isArray(data[key].last_sessions)) {
+        data[key].last_sessions = []
+    }
 
-    const previousSessions = Array.isArray(data[key].last_sessions)
-        ? data[key].last_sessions
-        : []
-
-    delete data[key].last_sessions
     data[key].last_sessions =
-        cleanupOldSessions(previousSessions, unixTime)
+        cleanupOldSessions(data[key].last_sessions, unixTime)
 
     const sessions = data[key].last_sessions
     const last = sessions[sessions.length - 1]
@@ -75,12 +84,14 @@ async function recordJoin(username, unixTime) {
     if (last) {
 
         if (last.leave === 0) {
+            setLastJoin(data[key])
             save(data)
             return
         }
 
         if (unixTime - last.leave < TEN_MINUTES) {
             last.leave = 0
+            setLastJoin(data[key])
             save(data)
             return
         }
@@ -90,6 +101,8 @@ async function recordJoin(username, unixTime) {
         join: unixTime,
         leave: 0
     })
+
+    setLastJoin(data[key])
 
     save(data)
 }
@@ -116,8 +129,6 @@ async function recordLeave(username, unixTime) {
 
     if (last.leave === 0) {
         last.leave = unixTime
-    } else {
-        last.leave = -1
     }
 
     save(data)

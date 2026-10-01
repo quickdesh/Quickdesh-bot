@@ -60,7 +60,7 @@ function activityFields(member) {
     } else if (last.leave > 0) {
         status = `⚫ Last seen <t:${last.leave}:R>`
     } else {
-        status = `⚫ Last seen unknown`
+        status = `⚫ Last seen <t:${last.join}:R> (leave time unknown)`
     }
 
     const finished = sessions.filter(s => s.join >= now - 180 * day && s.leave > 0)
@@ -485,7 +485,7 @@ class DiscordManager extends CommunicationBridge {
       .setThumbnail(this.app.config.discord.thumbnail)
       .addFields({ name: "Rank", value: rank.replace("Rank: ",""), inline: false})
       .addFields({ name: "Joined", value: `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`, inline: false})
-      .addFields({ name: "Guild Exp Contributions", value: exp, inline: false})
+      // .addFields({ name: "Guild Exp Contributions", value: exp, inline: false})
       .addFields(...activityFields(member))
 
       const player_links = new ActionRowBuilder().addComponents(
