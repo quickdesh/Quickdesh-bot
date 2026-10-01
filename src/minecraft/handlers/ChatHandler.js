@@ -270,6 +270,7 @@ class StateHandler extends EventHandler {
 				icon: `https://mc-heads.net/head/${user.replace(" ","")}`,
 				color: 0xFFFF00,
 				chatType: 'oc',
+				username: user.replace(" ",""),
 			})
 		}
 

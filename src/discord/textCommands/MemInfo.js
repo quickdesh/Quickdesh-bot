@@ -17,7 +17,7 @@ class MemInfoCommand extends DiscordCommand {
 				{
 					name: 'Pages',
 					lines: [
-						'👤 **Member** · guild rank, join date, online status, last join, previous names',
+						'👤 **Member** · UUID, guild rank, join date, online status, last join, previous names (other pages show the UUID in the footer)',
 						'📊 **Activity** · last 7 days of guild exp, and playtime/sessions for 7 days to 6 months (same rules as `activelist`)',
 						'🏝️ **SkyBlock** · SkyBlock level, skill average, magical power, purse, bank, skills and slayers',
 						'⚔️ **Dungeons** · Catacombs and class levels, highest floors, runs and secrets'

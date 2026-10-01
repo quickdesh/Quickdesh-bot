@@ -254,7 +254,7 @@ function dungeonRunsBlock(d) {
     ))
 }
 
-function memberEmbed({ name, member, stats, thumbnail }) {
+function memberEmbed({ name, uuid, member, stats, thumbnail }) {
     const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
     const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
 
@@ -266,6 +266,7 @@ function memberEmbed({ name, member, stats, thumbnail }) {
     const embed = new EmbedBuilder()
         .setColor(COLORS.member)
         .setTitle(`${hypixelRank}${name}`)
+        .setDescription(`🆔 \`${uuid}\``)
         .setThumbnail(thumbnail)
         .addFields(
             { name: "🏷️ Rank", value: rank, inline: true },
@@ -368,19 +369,27 @@ function profileSelect(name, page, profiles, currentId) {
     )
 }
 
-function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = getSessionRules(), page = "member", profileId = null }) {
+function pickProfile(stats, profileId = null) {
     const profiles = stats?.profiles ?? []
     const profile = profiles.find(p => p.id === profileId) ?? profiles.find(p => p.selected) ?? profiles[0] ?? null
-    if (profile) {
-        stats = {
+    if (!profile) return { stats, profile: null }
+
+    return {
+        profile,
+        stats: {
             ...stats,
             profile: `${profile.name}${PROFILE_MODES[profile.mode] ? ` ${PROFILE_MODES[profile.mode].split(" ")[0]}` : ""}`,
             skyblock: profile.skyblock,
             dungeons: profile.dungeons
         }
     }
+}
 
-    const pages = { member: memberEmbed({ name, member, stats, thumbnail }) }
+function buildMemberInfoMessage({ name, uuid, member, stats: rawStats, thumbnail, rules = getSessionRules(), page = "member", profileId = null }) {
+    const profiles = rawStats?.profiles ?? []
+    const { stats, profile } = pickProfile(rawStats, profileId)
+
+    const pages = { member: memberEmbed({ name, uuid, member, stats, thumbnail }) }
 
     const activity = activityEmbed({ member, stats, rules })
     if (activity) pages.activity = activity
@@ -402,7 +411,8 @@ function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = 
     }
 
     embed.setTimestamp(Date.now())
-    if (stats?.errors?.length) embed.setFooter({ text: stats.errors.join(" | ").slice(0, 2048) })
+    const footer = [current !== "member" ? `UUID: ${uuid}` : null, ...(stats?.errors ?? [])].filter(Boolean)
+    if (footer.length) embed.setFooter({ text: footer.join(" | ").slice(0, 2048) })
 
     const showProfiles = ["skyblock", "dungeons"].includes(current) && profiles.length > 1
     const chosenId = profile && !profile.selected ? profile.id : null
@@ -415,6 +425,22 @@ function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = 
             linkButtons(name)
         ]
     }
+}
+
+function buildJoinRequestEmbeds({ name, uuid, member, stats: rawStats }) {
+    const { stats } = pickProfile(rawStats)
+    const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
+    const author = { name: `${hypixelRank}${name}`, iconURL: `https://mc-heads.net/avatar/${uuid}` }
+
+    if (!stats?.skyblock) {
+        const reason = stats?.errors?.some(e => e.startsWith("SkyBlock")) ? "SkyBlock stats aren't available right now." : "This player has no SkyBlock profile."
+        return [new EmbedBuilder().setColor(COLORS.skyblock).setAuthor(author).setDescription(reason).setFooter({ text: `UUID: ${uuid}` })]
+    }
+
+    return [
+        skyblockEmbed(stats).setAuthor(author),
+        dungeonsEmbed(stats).setAuthor(author).setFooter({ text: `UUID: ${uuid} · showing their selected profile · use member <name> for every page and profile` })
+    ]
 }
 
 function buildGuildListMessage(guild, { thumbnail, lobbyHolder }) {
@@ -662,4 +688,4 @@ function buildExemptionListMessage(exemptions) {
     return { embeds: [embed] }
 }
 
-module.exports = { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }
+module.exports = { buildMemberInfoMessage, buildJoinRequestEmbeds, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }

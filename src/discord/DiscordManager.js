@@ -1,4 +1,3 @@
-const fetch = require("cross-fetch")
 const CommunicationBridge = require('../contracts/CommunicationBridge')
 const StateHandler = require('./handlers/StateHandler')
 const MessageHandler = require('./handlers/MessageHandler')
@@ -8,7 +7,7 @@ const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 const GuildManager = require("../guild/GuildManager.js")
-const { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
+const { buildMemberInfoMessage, buildJoinRequestEmbeds, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -182,80 +181,52 @@ class DiscordManager extends CommunicationBridge {
     })
   }
 
-  onBroadcastHeadedEmbed({ message, title, icon, color,chatType }) {
+  onBroadcastHeadedEmbed({ message, title, icon, color, chatType, username }) {
     this.app.log.broadcast(message, 'Event')
-    if (chatType=="gc"){
-    this.app.discord.client.channels.fetch(this.app.config.discord.gcchannel).then(channel => {
-      channel.send({
-        embeds: [
-            {
-              color: color,
-              author: {
-                name: title,
-              },
-              thumbnail: {
-                url: icon,
-              },
-              description: message,
-            }
-        ]
-      })
-    })}
-    else if (chatType=="oc"){
-      this.app.discord.client.channels.fetch(this.app.config.discord.joinleavechannel).then(channel => {
-        if (title == "Join Request"){
-          channel.send({
-            embeds: [
-                {
-                  color: color,
-                  author: {
-                    name: title,
-                  },
-                  thumbnail: {
-                    url: icon,
-                  },
-                  description: message,
-                }
-            ]
-          }).then( async message =>{
-            const player= icon.replace("https://mc-heads.net/head/","")
-            let response = await fetch(`https://playerdb.co/api/player/minecraft/${player}`)
-            let data = await response.text()
-            const player_uuid = JSON.parse(data).data.player.id.toString()
-            if(title == "Join Request"){
-              const accept_reject = new ActionRowBuilder().addComponents(
-                                      new ButtonBuilder().setCustomId(`acceptjoinee ${player}`).setLabel(`Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ButtonStyle.Secondary),
-                                      new ButtonBuilder().setCustomId(`rejectjoinee ${player}`).setLabel(`Reject`).setEmoji({ name: "qnon", id: "933344718790750229" }).setStyle(ButtonStyle.Secondary)
-                                    )
-              const player_links = new ActionRowBuilder().addComponents(
-                                      new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${player_uuid}`),
-                                      new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${player}`)
-                                    )
-                                  
-              message.edit({ embeds: message.embeds,components: [accept_reject,player_links]})
-              
-              }
-            
-          })
-      }else{
-        channel.send({
-          embeds: [
-              {
-                color: color,
-                author: {
-                  name: title,
-                },
-                thumbnail: {
-                  url: icon,
-                },
-                description: message,
-              }
-          ]
-        })
-      }
-      })}
 
+    const embed = {
+      color: color,
+      author: { name: title },
+      thumbnail: { url: icon },
+      description: message,
+    }
+
+    const channelId = chatType == "gc" ? this.app.config.discord.gcchannel : this.app.config.discord.joinleavechannel
+
+    this.app.discord.client.channels.fetch(channelId).then(channel => {
+      if (chatType == "oc" && title == "Join Request" && username) {
+        return this.joinRequest({ channel, embed, username })
+      }
+      return channel.send({ embeds: [embed] })
+    })
   }
+
+  async joinRequest({ channel, embed, username }) {
+    const sent = await channel.send({ embeds: [embed] })
+
+    let info = null
+    try {
+      info = await GuildManager.getMemberInfo(this.app, username)
+      for (const error of info?.stats.errors ?? []) this.app.log.error(`Join request stats for ${username}: ${error}`)
+    } catch (err) {
+      this.app.log.error(`Join request stats failed for ${username}: ${err.message}`)
+    }
+
+    const name = info?.name ?? username
+    const acceptReject = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`acceptjoinee ${name}`).setLabel(`Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`rejectjoinee ${name}`).setLabel(`Reject`).setEmoji({ name: "qnon", id: "933344718790750229" }).setStyle(ButtonStyle.Secondary)
+    )
+    const playerLinks = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${info?.uuid ?? name}`),
+      new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${name}`)
+    )
+
+    const requestEmbed = info ? { ...embed, description: `${embed.description}\n🆔 \`${info.uuid}\`` } : embed
+    const statEmbeds = info ? buildJoinRequestEmbeds(info) : []
+    await sent.edit({ embeds: [requestEmbed, ...statEmbeds], components: [acceptReject, playerLinks] })
+  }
+
   guildOnline({ guildName, groups, chatTypes }){
     this.app.log.broadcast('Guild Online', 'Command')
 

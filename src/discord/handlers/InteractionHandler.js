@@ -22,17 +22,16 @@ class InteractionHandler {
             const [, page, name, profileId] = butt.customId.split(":")
             return this.discord.memberInfoPage({ message: butt.message, page, name, profileId })
         }
-        if(butt.customId.split(" ")[0] == "acceptjoinee"){
-            butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
-            const player = butt.customId.split(" ")[1]
-            this.discord.app.minecraft.bot.chat(`/g accept ${player}`)
-            this.discord.app.minecraft.bot.chat(`/g invite ${player}`)
-            butt.message.reply({content: `${butt.user} accepted ${player}`})
-        }
-        else if(butt.customId.split(" ")[0] == "rejectjoinee"){
-            butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
-            const player = butt.customId.split(" ")[1]
-            butt.message.reply({content: `${butt.user} rejected ${player}`})
+        const [action, player] = butt.customId.split(" ")
+        if (action == "acceptjoinee" || action == "rejectjoinee") {
+            await butt.message.edit({ embeds: butt.message.embeds, components: [butt.message.components[1]] })
+
+            if (action == "acceptjoinee") {
+                this.discord.app.minecraft.bot.chat(`/g accept ${player}`)
+                this.discord.app.minecraft.bot.chat(`/g invite ${player}`)
+            }
+
+            await butt.message.reply({ content: `${butt.user} ${action == "acceptjoinee" ? "accepted" : "rejected"} ${player}` })
         }
     }
 
