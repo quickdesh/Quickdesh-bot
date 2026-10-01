@@ -12,6 +12,10 @@ class InteractionHandler {
         if (butt.isButton()){
             await butt.deferUpdate()
         }
+        if (butt.customId.startsWith("meminfo:")) {
+            const [, page, name] = butt.customId.split(":")
+            return this.discord.memberInfoPage({ message: butt.message, page, name })
+        }
         if(butt.customId.split(" ")[0] == "acceptjoinee"){
             butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
             const player = butt.customId.split(" ")[1]

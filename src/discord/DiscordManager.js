@@ -299,6 +299,7 @@ class DiscordManager extends CommunicationBridge {
 
       await channel.send(buildMemberInfoMessage({
         name: info.name,
+        uuid: info.uuid,
         member: info.member,
         stats: info.stats,
         thumbnail: this.app.config.discord.thumbnail
@@ -306,6 +307,24 @@ class DiscordManager extends CommunicationBridge {
     } catch (err) {
       this.app.log.error(`Member info failed for ${username}: ${err.message}`)
       await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't load member info: ${err.message}` }] })
+    }
+  }
+
+  async memberInfoPage({ message, page, name }){
+    try {
+      const info = await GuildManager.getMemberInfo(this.app, name)
+      if (!info) return
+
+      await message.edit(buildMemberInfoMessage({
+        name: info.name,
+        uuid: info.uuid,
+        member: info.member,
+        stats: info.stats,
+        thumbnail: this.app.config.discord.thumbnail,
+        page
+      }))
+    } catch (err) {
+      this.app.log.error(`Member info page failed for ${name}: ${err.message}`)
     }
   }
 

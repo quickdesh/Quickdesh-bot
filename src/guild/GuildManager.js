@@ -84,6 +84,7 @@ async function getMemberInfo(app, username) {
 
     return {
         name: key ?? name,
+        uuid,
         member: key ? data[key] : null,
         stats
     }

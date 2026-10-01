@@ -14,15 +14,18 @@ const C = {
     yellow: "\u001b[0;33m",
     blue: "\u001b[0;34m",
     pink: "\u001b[0;35m",
-    cyan: "\u001b[0;36m",
+    label: "\u001b[0;37m",
     bold: "\u001b[1;37m",
+    highlight: "\u001b[1;32m",
     reset: "\u001b[0m"
 }
 
 const COLORS = {
-    member: 0x47F049,
-    skyblock: 0xF5A623,
-    dungeons: 0xC0392B
+    guild: 0x47F049,
+    member: 0xBCB496,
+    activity: 0x248046,
+    skyblock: 0x5865F2,
+    dungeons: 0xDA373C
 }
 
 function ansi(lines) {
@@ -140,8 +143,8 @@ function activityBlock(sessions) {
     for (const [label, days] of periods) {
         const { time, count } = statsSince(sessions, now - days * DAY, now)
         const perDay = time / days / 3600
-        const color = perDay >= 2 ? C.green : perDay >= 0.5 ? C.yellow : C.gray
-        lines.push(`${C.cyan}${label.padEnd(11)}${color}${formatDuration(time).padStart(9)}${C.blue}${String(count).padStart(10)}${C.reset}`)
+        const color = perDay >= 2 ? C.green : perDay >= 0.5 ? C.yellow : C.red
+        lines.push(`${C.label}${label.padEnd(11)}${color}${formatDuration(time).padStart(9)}${C.blue}${String(count).padStart(10)}${C.reset}`)
     }
 
     const finished = sessions.filter(s => s.join >= now - 180 * DAY && s.leave > 0)
@@ -150,7 +153,7 @@ function activityBlock(sessions) {
         : "N/A"
 
     lines.push(divider(30))
-    lines.push(`${C.cyan}${"Avg session".padEnd(11)}${C.bold}${average.padStart(9)}${C.reset}`)
+    lines.push(`${C.label}${"Avg session".padEnd(11)}${C.bold}${average.padStart(9)}${C.reset}`)
 
     return ansi(lines)
 }
@@ -164,15 +167,15 @@ function guildExpBlock(guild) {
     days.forEach(([date, xp], i) => {
         const [, month, day] = date.split("-")
         const label = i === 0 ? "Today" : `${MONTHS[Number(month) - 1].slice(0, 3)} ${Number(day)}`
-        const color = xp === 0 ? C.gray : xp >= max * 0.6 ? C.green : C.yellow
-        lines.push(`${C.cyan}${label.padEnd(10)}${color}${xp.toLocaleString("en-US").padStart(9)}  ${C.blue}${bar(xp / max)}${C.reset}`)
+        const color = xp === 0 ? C.red : xp >= max * 0.6 ? C.green : C.yellow
+        lines.push(`${C.label}${label.padEnd(10)}${color}${xp.toLocaleString("en-US").padStart(9)}  ${C.blue}${bar(xp / max)}${C.reset}`)
     })
 
     const average = days.length ? Math.round(guild.weekly / days.length) : 0
 
     lines.push(divider(31))
-    lines.push(`${C.cyan}${"Weekly".padEnd(10)}${C.bold}${guild.weekly.toLocaleString("en-US").padStart(9)}${C.reset}`)
-    lines.push(`${C.cyan}${"Daily avg".padEnd(10)}${C.bold}${average.toLocaleString("en-US").padStart(9)}${C.reset}`)
+    lines.push(`${C.label}${"Weekly".padEnd(10)}${C.bold}${guild.weekly.toLocaleString("en-US").padStart(9)}${C.reset}`)
+    lines.push(`${C.label}${"Daily avg".padEnd(10)}${C.bold}${average.toLocaleString("en-US").padStart(9)}${C.reset}`)
 
     return ansi(lines)
 }
@@ -190,7 +193,7 @@ function overviewBlock(sb) {
     ]
 
     return ansi(rows.map(([label, value, color]) =>
-        `${C.cyan}${label.padEnd(14)}${color}${value.padStart(9)}${C.reset}`
+        `${C.label}${label.padEnd(14)}${color}${value.padStart(9)}${C.reset}`
     ))
 }
 
@@ -200,7 +203,7 @@ function skillsBlock(skills) {
     for (const [name, { level, cap }] of Object.entries(skills)) {
         const maxed = level >= cap
         const progress = maxed ? 1 : level % 1
-        lines.push(`${maxed ? C.yellow : C.cyan}${capitalize(name).padEnd(11)}${C.bold}${(maxed ? `${cap}` : level.toFixed(2)).padStart(6)}  ${maxed ? C.yellow : C.blue}${bar(progress)}${C.reset}`)
+        lines.push(`${maxed ? C.yellow : C.label}${capitalize(name).padEnd(11)}${C.bold}${(maxed ? `${cap}` : level.toFixed(2)).padStart(6)}  ${maxed ? C.yellow : C.blue}${bar(progress)}${C.reset}`)
     }
 
     return ansi(lines)
@@ -211,13 +214,13 @@ function slayersBlock(slayers) {
 
     for (const [boss, { level, xp }] of Object.entries(slayers)) {
         const maxLevel = boss === "vampire" ? 5 : 9
-        const color = level === 0 ? C.gray : level >= maxLevel ? C.yellow : C.cyan
-        lines.push(`${color}${SLAYER_NAMES[boss].padEnd(12)}${C.bold}${String(level).padStart(3)}${C.gray}${compact(xp).padStart(8)}  ${C.red}${bar(level / maxLevel, maxLevel)}${C.reset}`)
+        const color = level >= maxLevel ? C.yellow : C.label
+        lines.push(`${color}${SLAYER_NAMES[boss].padEnd(12)}${C.bold}${String(level).padStart(3)}${C.blue}${compact(xp).padStart(8)}  ${C.red}${bar(level / maxLevel, maxLevel)}${C.reset}`)
     }
 
     const total = Object.values(slayers).reduce((sum, s) => sum + s.xp, 0)
     lines.push(divider(32))
-    lines.push(`${C.cyan}${"Total XP".padEnd(12)}${C.bold}${compact(total).padStart(11)}${C.reset}`)
+    lines.push(`${C.label}${"Total XP".padEnd(12)}${C.bold}${compact(total).padStart(11)}${C.reset}`)
 
     return ansi(lines)
 }
@@ -226,7 +229,7 @@ function dungeonsBlock(d) {
     const exactLevel = p => p.level >= 50 ? p.level : p.level + Number(p.percent) / 100
 
     const row = (label, p, highlight) =>
-        `${highlight ? C.green : C.cyan}${label.padEnd(11)}${C.bold}${exactLevel(p).toFixed(2).padStart(6)}${C.gray}${(p.xpLeftTo50 === 0 ? "MAX" : compact(p.xpLeftTo50)).padStart(8)}  ${C.blue}${bar(Number(p.percent) / 100)}${C.reset}`
+        `${highlight ? C.highlight : C.label}${label.padEnd(11)}${C.bold}${exactLevel(p).toFixed(2).padStart(6)}${C.yellow}${(p.xpLeftTo50 === 0 ? "MAX" : compact(p.xpLeftTo50)).padStart(8)}  ${C.blue}${bar(Number(p.percent) / 100)}${C.reset}`
 
     const lines = [`${C.bold}${"".padEnd(11)}${"Level".padStart(6)}${"To 50".padStart(8)}  Progress${C.reset}`]
     lines.push(row("Catacombs", d.catacombs, false))
@@ -241,7 +244,7 @@ function dungeonsBlock(d) {
     const average = levels.reduce((a, b) => a + b, 0) / levels.length
 
     lines.push(divider(35))
-    lines.push(`${C.cyan}${"Class Avg".padEnd(11)}${C.bold}${average.toFixed(2).padStart(6)}${C.reset}`)
+    lines.push(`${C.label}${"Class Avg".padEnd(11)}${C.bold}${average.toFixed(2).padStart(6)}${C.reset}`)
 
     return ansi(lines)
 }
@@ -259,7 +262,7 @@ function dungeonRunsBlock(d) {
     ]
 
     return ansi(rows.map(([label, value, color]) =>
-        `${C.cyan}${label.padEnd(15)}${color}${value.padStart(9)}${C.reset}`
+        `${C.label}${label.padEnd(15)}${color}${value.padStart(9)}${C.reset}`
     ))
 }
 
@@ -282,16 +285,29 @@ function memberEmbed({ name, member, stats, thumbnail }) {
         )
         .addFields(...statusFields(sessions))
 
+    if (Array.isArray(member?.["Old names"]) && member["Old names"].length) {
+        embed.addFields({ name: "📛 Previous Names", value: member["Old names"].join(", ").slice(0, 1024), inline: false })
+    }
+
+    return embed
+}
+
+function activityEmbed({ member, stats }) {
+    const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
+    const guild = stats?.guild
+
+    if (!guild?.days?.length && !sessions.length) return null
+
+    const embed = new EmbedBuilder()
+        .setColor(COLORS.activity)
+        .setTitle("📊 Activity")
+
     if (guild?.days?.length) {
         embed.addFields({ name: "📈 Guild Exp", value: guildExpBlock(guild), inline: false })
     }
 
     if (sessions.length) {
-        embed.addFields({ name: "📊 Activity", value: activityBlock(sessions), inline: false })
-    }
-
-    if (Array.isArray(member?.["Old names"]) && member["Old names"].length) {
-        embed.addFields({ name: "📛 Previous Names", value: member["Old names"].join(", ").slice(0, 1024), inline: false })
+        embed.addFields({ name: "🕹️ Playtime", value: activityBlock(sessions), inline: false })
     }
 
     return embed
@@ -318,29 +334,61 @@ function dungeonsEmbed(stats) {
         )
 }
 
-function linkButtons(username) {
+const PAGES = [
+    { id: "member", emoji: "👤", style: ButtonStyle.Secondary },
+    { id: "activity", emoji: "📊", style: ButtonStyle.Success },
+    { id: "skyblock", emoji: "🏝️", style: ButtonStyle.Primary },
+    { id: "dungeons", emoji: "⚔️", style: ButtonStyle.Danger }
+]
+
+function pageButtons(name, current, available) {
     return new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${username}`),
-        new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${username}`)
+        PAGES.map(page =>
+            new ButtonBuilder()
+                .setCustomId(`meminfo:${page.id}:${name}`)
+                .setEmoji(page.emoji)
+                .setStyle(page.id === current ? page.style : ButtonStyle.Secondary)
+                .setDisabled(!available.includes(page.id) || (page.id === current && page.style === ButtonStyle.Secondary))
+        )
     )
 }
 
-function buildMemberInfoMessage({ name, member, stats, thumbnail }) {
-    const embeds = [memberEmbed({ name, member, stats, thumbnail })]
+function linkButtons(username) {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setLabel("NameMC").setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${username}`),
+        new ButtonBuilder().setLabel("SkyCrypt").setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${username}`)
+    )
+}
+
+function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, page = "member" }) {
+    const pages = { member: memberEmbed({ name, member, stats, thumbnail }) }
+
+    const activity = activityEmbed({ member, stats })
+    if (activity) pages.activity = activity
 
     if (stats?.skyblock) {
-        embeds.push(skyblockEmbed(stats))
-        embeds.push(dungeonsEmbed(stats))
+        pages.skyblock = skyblockEmbed(stats)
+        pages.dungeons = dungeonsEmbed(stats)
     } else {
         const reason = stats?.errors?.some(e => e.startsWith("SkyBlock")) ? "Not available right now" : "No SkyBlock profile found"
-        embeds[0].addFields({ name: "🏝️ SkyBlock", value: reason, inline: false })
+        pages.member.addFields({ name: "🏝️ SkyBlock", value: reason, inline: false })
     }
 
-    const last = embeds[embeds.length - 1]
-    last.setTimestamp(Date.now())
-    if (stats?.errors?.length) last.setFooter({ text: stats.errors.join(" | ").slice(0, 2048) })
+    const current = pages[page] ? page : "member"
+    const embed = pages[current]
 
-    return { embeds, components: [linkButtons(name)] }
+    if (current !== "member") {
+        const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
+        embed.setAuthor({ name: `${hypixelRank}${name}`, iconURL: `https://mc-heads.net/avatar/${uuid}` })
+    }
+
+    embed.setTimestamp(Date.now())
+    if (stats?.errors?.length) embed.setFooter({ text: stats.errors.join(" | ").slice(0, 2048) })
+
+    return {
+        embeds: [embed],
+        components: [pageButtons(name, current, Object.keys(pages)), linkButtons(name)]
+    }
 }
 
 function buildGuildListMessage(guild, { thumbnail, lobbyHolder }) {
@@ -349,7 +397,7 @@ function buildGuildListMessage(guild, { thumbnail, lobbyHolder }) {
     const ranks = [...guild.ranks, ...new Set(members.map(m => m.rank).filter(r => !guild.ranks.includes(r)))]
 
     const embed = new EmbedBuilder()
-        .setColor(COLORS.member)
+        .setColor(COLORS.guild)
         .setTitle(guild.name)
         .setThumbnail(thumbnail)
         .setTimestamp(Date.now())
@@ -373,7 +421,7 @@ function buildGuildOnlineMessage({ guildName, groups }, { thumbnail, lobbyHolder
         .filter(g => g.names.length)
 
     const embed = new EmbedBuilder()
-        .setColor(COLORS.member)
+        .setColor(COLORS.guild)
         .setTitle(guildName)
         .setThumbnail(thumbnail)
         .setTimestamp(Date.now())
