@@ -177,9 +177,11 @@ class StateHandler extends EventHandler {
 				this.minecraft.broadcastHeadedEmbed({
 					message: [
 						`**${banned.name}** just joined the guild but is on the ban list!`,
+						...(banned.ban.bannedAs && banned.ban.bannedAs.toLowerCase() !== banned.name.toLowerCase() ? [`**Banned as:** ${banned.ban.bannedAs}`] : []),
+						...(banned.ban.usernames?.length > 1 ? [`**Usernames:** ${banned.ban.usernames.join(" → ")}`] : []),
 						`**Reason:** ${banned.ban.reason ?? "No reason given"}`,
 						`**Banned:** <t:${banned.ban.at}:f> by ${banned.ban.by ?? "Unknown"}`,
-						`Use \`${this.minecraft.app.config.discord.prefix}ban ${banned.name}\` to kick them again.`
+						`Use \`${this.minecraft.app.config.discord.prefix}ban ${banned.name} <reason>\` to kick them again.`
 					].join("\n"),
 					title: `⛔ Banned player joined`,
 					icon: `https://mc-heads.net/head/${banned.name}`,

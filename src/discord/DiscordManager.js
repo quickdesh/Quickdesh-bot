@@ -232,7 +232,7 @@ class DiscordManager extends CommunicationBridge {
     }
 
     const name = info?.name ?? username
-    const ban = info ? GuildManager.getBanByUuid(info.uuid) : null
+    const ban = info?.ban ?? null
     const acceptReject = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`acceptjoinee ${name}`).setLabel(ban ? `Accept anyway` : `Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ban ? ButtonStyle.Danger : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`rejectjoinee ${name}`).setLabel(`Reject`).setEmoji({ name: "qnon", id: "933344718790750229" }).setStyle(ButtonStyle.Secondary)
@@ -316,7 +316,7 @@ class DiscordManager extends CommunicationBridge {
     const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
 
     if (!username || reasonWords.length === 0) {
-      return fail(`${username ? `You need to give a reason to ban **${username}**.\n\n` : ""}Usage: \`${prefix}ban <ign> <reason>\`\nExample: \`${prefix}ban ${username ?? "Bob"} scamming members\``)
+      return fail(`${username ? `You need to give a reason to ban **${username}**.\n\n` : ""}Usage: \`${prefix}ban <ign or uuid> <reason>\`\nExample: \`${prefix}ban ${username ?? "Bob"} scamming members\``)
     }
 
     try {
@@ -354,7 +354,7 @@ class DiscordManager extends CommunicationBridge {
     const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
 
     if (!username || reasonWords.length === 0) {
-      return fail(`${username ? `You need to give a reason to unban **${username}**.\n\n` : ""}Usage: \`${prefix}unban <ign> <reason>\`\nExample: \`${prefix}unban ${username ?? "Bob"} appealed and apologised\``)
+      return fail(`${username ? `You need to give a reason to unban **${username}**.\n\n` : ""}Usage: \`${prefix}unban <ign or uuid> <reason>\`\nExample: \`${prefix}unban ${username ?? "Bob"} appealed and apologised\``)
     }
 
     try {
@@ -396,37 +396,61 @@ class DiscordManager extends CommunicationBridge {
 
   async invite({ channel, args }){
     const prefix = this.app.config.discord.prefix
-    const [username, flag] = args.filter(Boolean)
-    const force = flag?.toLowerCase() === "force"
+    const username = args.filter(Boolean)[0]
+    const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
 
-    if (!username) {
-      return channel.send({ embeds: [{ color: 0xDC143C, description: `Usage: \`${prefix}invite <ign> [force]\`` }] })
-    }
+    if (!username) return fail(`Usage: \`${prefix}invite <ign or uuid>\``)
 
     let banned = null
     try {
       banned = await GuildManager.checkBan(username)
     } catch (err) {
       this.app.log.error(`Ban check failed for ${username}: ${err.message}`)
-      if (!force) {
-        return channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't check the ban list for **${username}** (${err.message}), so they weren't invited. Use \`${prefix}invite ${username} force\` to invite anyway.` }] })
-      }
-    }
-
-    if (banned && !force) {
-      return channel.send({ embeds: [{
-        color: 0xDA373C,
-        title: `⛔ ${banned.name} is banned, so they weren't invited`,
-        description: `${formatBan(banned.ban)}\n\nTo invite them anyway: \`${prefix}invite ${banned.name} force\`\nTo remove the ban: \`${prefix}unban ${banned.name} <reason>\``
-      }] })
-    }
-
-    if (this.app.minecraft.bot?.player !== undefined) {
-      this.app.minecraft.bot.chat(`/g invite ${banned?.name ?? username}`)
+      return fail(`Couldn't check the ban list for **${username}** (${err.message}), so they weren't invited. Try again in a minute.`)
     }
 
     if (banned) {
-      await channel.send({ embeds: [{ color: 0xF0B232, description: `⚠️ Invited **${banned.name}** even though they're banned (${banned.ban.reason ?? "no reason given"}).` }] })
+      const history = banned.history ?? []
+      return channel.send({ embeds: [{
+        color: 0xDA373C,
+        title: `⛔ ${banned.name} is banned`,
+        description: [
+          formatBan(banned.ban),
+          `🆔 \`${banned.uuid}\``,
+          "",
+          `They weren't invited. If you want to invite them, unban them first:`,
+          `\`${prefix}unban ${banned.name} <reason>\``
+        ].join("\n"),
+        fields: history.length
+          ? [{ name: `📜 Former bans (${history.length})`, value: history.slice(0, 5).map(formatFormerBan).join("\n\n").slice(0, 1024) }]
+          : [],
+        footer: history.length > 5 ? { text: `Showing the latest 5 · ${prefix}banlist ${banned.name} shows all of them` } : undefined
+      }] })
+    }
+
+    let target = username
+    let history = []
+    try {
+      const record = await GuildManager.getPlayerBanRecord(username)
+      if (record) {
+        target = record.name
+        history = record.history
+      } else if (GuildManager.parseUuid(username)) {
+        return fail(`Couldn't find a player with the UUID \`${username}\`.`)
+      }
+    } catch (err) {
+      this.app.log.error(`Ban history check failed for ${username}: ${err.message}`)
+    }
+
+    if (this.app.minecraft.bot?.player !== undefined) {
+      this.app.minecraft.bot.chat(`/g invite ${target}`)
+    }
+
+    if (history.length) {
+      await channel.send({ embeds: [{
+        color: 0xF0B232,
+        description: `📜 Invited **${target}**. They aren't banned now, but have ${history.length} former ban${history.length === 1 ? "" : "s"}. Most recent:\n${formatFormerBan(history[0])}`
+      }] })
     }
   }
 
@@ -434,7 +458,8 @@ class DiscordManager extends CommunicationBridge {
     if (this.app.minecraft.bot?.player === undefined) return
 
     const date = new Date(ban.at * 1000).toLocaleDateString("en-CA", { timeZone: "America/New_York" })
-    const start = `/oc [Ban list] ${name} sent a join request but is BANNED - check Discord before accepting. Reason: `
+    const bannedAs = ban.bannedAs && ban.bannedAs.toLowerCase() !== name.toLowerCase() ? ` (banned as ${ban.bannedAs})` : ""
+    const start = `/oc [Ban list] ${name}${bannedAs} sent a join request but is BANNED - check Discord before accepting. Reason: `
     const end = ` (by ${ban.by ?? "unknown"}, ${date})`
     let reason = ban.reason ?? "none given"
     const room = 256 - start.length - end.length

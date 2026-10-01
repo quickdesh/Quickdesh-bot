@@ -12,7 +12,7 @@ class UnbanCommand extends DiscordCommand {
 
 	help(prefix) {
 		return {
-			usage: `${prefix}unban <ign> <reason>`,
+			usage: `${prefix}unban <ign or uuid> <reason>`,
 			sections: [
 				{
 					name: 'Details',

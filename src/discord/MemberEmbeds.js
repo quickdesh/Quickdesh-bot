@@ -458,8 +458,20 @@ function buildJoinRequestProfileRow({ name, stats }, profileId = null) {
     return profileSelect(`joinreq-profile:${name}`, profiles, profile.id)
 }
 
+function bannedAsName(entry) {
+    return entry.bannedAs && entry.bannedAs.toLowerCase() !== entry.name?.toLowerCase() ? entry.bannedAs : null
+}
+
+function formatUsernames(usernames) {
+    return usernames?.length > 1 ? usernames.map(escapeName).join(" → ") : null
+}
+
 function formatBan(ban) {
+    const bannedAs = bannedAsName(ban)
+    const usernames = formatUsernames(ban.usernames)
     return [
+        ...(bannedAs ? [`**Banned as:** ${escapeName(bannedAs)}`] : []),
+        ...(usernames ? [`**Usernames:** ${usernames}`] : []),
         `**Reason:** ${ban.reason ?? "No reason given"}`,
         `**Banned:** <t:${ban.at}:f> (<t:${ban.at}:R>)`,
         `**By:** ${ban.by ?? "Unknown"}`
@@ -467,8 +479,9 @@ function formatBan(ban) {
 }
 
 function formatFormerBan(entry) {
+    const bannedAs = bannedAsName(entry)
     return [
-        `**Banned:** <t:${entry.at}:d> by ${entry.by ?? "Unknown"} · ${entry.reason ?? "No reason given"}`,
+        `**Banned:** <t:${entry.at}:d>${bannedAs ? ` as ${escapeName(bannedAs)}` : ""} by ${entry.by ?? "Unknown"} · ${entry.reason ?? "No reason given"}`,
         `**Unbanned:** <t:${entry.unbannedAt}:d> by ${entry.unbannedBy ?? "Unknown"} · ${entry.unbanReason ?? "No reason given"}`
     ].join("\n")
 }
@@ -489,7 +502,7 @@ function buildBanListMessage(bans, former = [], prefix = "+") {
         embed.setDescription("Nobody is banned.")
     } else {
         const lines = bans.map(b =>
-            `**${escapeName(b.name)}** · <t:${b.at}:d> · by ${b.by ?? "Unknown"}${b.reason ? ` · ${b.reason}` : ""}`
+            `**${escapeName(b.name)}**${bannedAsName(b) ? ` (banned as ${escapeName(bannedAsName(b))})` : ""} · <t:${b.at}:d> · by ${b.by ?? "Unknown"}${b.reason ? ` · ${b.reason}` : ""}`
         )
         embed.addFields(...chunkItems("Banned players (newest first)", lines, "\n"))
     }
@@ -509,7 +522,7 @@ function buildBanRecordMessage(record) {
     const embed = new EmbedBuilder()
         .setColor(record.ban ? COLORS.inactive : COLORS.member)
         .setTitle(`📜 Ban history: ${record.name}`)
-        .setDescription(`🆔 \`${record.uuid}\``)
+        .setDescription([`🆔 \`${record.uuid}\``, ...(formatUsernames(record.usernames) ? [`**Usernames:** ${formatUsernames(record.usernames)}`] : [])].join("\n"))
         .setTimestamp(Date.now())
 
     embed.addFields({ name: record.ban ? "⛔ Currently banned" : "✅ Not currently banned", value: record.ban ? formatBan(record.ban) : "\u200b", inline: false })
@@ -768,4 +781,4 @@ function buildExemptionListMessage(exemptions) {
     return { embeds: [embed] }
 }
 
-module.exports = { formatBan, formatFormerBan, latestFormerBan, buildBanListMessage, buildBanRecordMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }
+module.exports = { formatUsernames, formatBan, formatFormerBan, latestFormerBan, buildBanListMessage, buildBanRecordMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }

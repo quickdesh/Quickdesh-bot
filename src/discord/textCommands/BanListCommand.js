@@ -12,7 +12,7 @@ class BanListCommand extends DiscordCommand {
 
 	help(prefix) {
 		return {
-			usage: `${prefix}banlist [ign]`,
+			usage: `${prefix}banlist [ign or uuid]`,
 			sections: [
 				{
 					name: 'Details',
