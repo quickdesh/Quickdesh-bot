@@ -466,7 +466,7 @@ function formatHours(seconds) {
     return hours > 0 ? `${hours}h` : `${Math.floor(seconds / 60)}m`
 }
 
-function packMessages(first, fields, color) {
+function packMessages(first, fields, makeContinuation) {
     const messages = [first]
     let current = first
     let size = (first.data.title?.length ?? 0) + (first.data.description?.length ?? 0) + 200
@@ -474,9 +474,9 @@ function packMessages(first, fields, color) {
     for (const field of fields) {
         const fieldSize = field.name.length + field.value.length
         if ((current.data.fields?.length ?? 0) >= 25 || size + fieldSize > 5500) {
-            current = new EmbedBuilder().setColor(color)
+            current = makeContinuation()
             messages.push(current)
-            size = 200
+            size = (current.data.title?.length ?? 0) + (current.data.description?.length ?? 0) + 200
         }
         current.addFields(field)
         size += fieldSize
@@ -493,10 +493,19 @@ function requirementText(labels) {
     return parts.join(labels.match === "all" ? " **and** " : " **or** ")
 }
 
-const TABLE = {
-    header: `${C.bold}${"Name".padEnd(16)} \u001b[1;34m${"Sess".padStart(4)} \u001b[1;33m${"Time".padStart(6)} \u001b[1;32m${"GEXP".padStart(7)}${C.reset}`,
-    row: entry => `${C.label}${entry.name.padEnd(16)} ${C.blue}${String(entry.count).padStart(4)} ${C.yellow}${formatHours(entry.playtime).padStart(6)} ${C.green}${compact(entry.gexp).padStart(7)}${entry.isNew ? `${C.pink} new` : ""}${C.reset}`
+function formatAverage(entry) {
+    if (!entry.count) return "-"
+    const minutes = Math.round(entry.playtime / entry.count / 60)
+    const hours = Math.floor(minutes / 60)
+    return hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}m` : `${minutes}m`
 }
+
+const TABLE = {
+    header: `${C.bold}${"Name".padEnd(16)} \u001b[1;34m${"Sess".padStart(4)} \u001b[1;33m${"Time".padStart(5)} \u001b[1;35m${"Avg".padStart(6)} \u001b[1;32m${"GEXP".padStart(7)}${C.reset}`,
+    row: entry => `${C.label}${entry.name.padEnd(16)} ${C.blue}${String(entry.count).padStart(4)} ${C.yellow}${formatHours(entry.playtime).padStart(5)} ${C.pink}${formatAverage(entry).padStart(6)} ${C.green}${compact(entry.gexp).padStart(7)}${entry.isNew ? `${C.bold} new` : ""}${C.reset}`
+}
+
+const COLUMNS_LINE = "Columns: **Sess** = sessions · **Time** = credited playtime · **Avg** = average session length · **GEXP** = guild exp in the period"
 
 function activityTable(title, entries) {
     if (entries.length === 0) return [{ name: title, value: "Nobody", inline: false }]
@@ -530,7 +539,7 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
         `Active = ${requirementText(labels)}`,
         "",
         `✅ **${active.length}** active · ❌ **${inactive.length}** inactive · 🛡️ **${exempt.length}** exempt`,
-        "Columns: **Sess** = sessions · **Time** = credited playtime · **GEXP** = guild exp in the period"
+        COLUMNS_LINE
     ]
 
     if (trackingSince === null) {
@@ -561,7 +570,12 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
         ] : [])
     ]
 
-    const embeds = packMessages(first, fields, COLORS.guild)
+    const embeds = packMessages(first, fields, () =>
+        new EmbedBuilder()
+            .setColor(COLORS.guild)
+            .setTitle("📋 Activity Check (continued)")
+            .setDescription(COLUMNS_LINE)
+    )
     const last = embeds[embeds.length - 1]
     last.setTimestamp(Date.now())
 

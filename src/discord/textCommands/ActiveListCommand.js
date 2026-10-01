@@ -79,7 +79,7 @@ class ActiveListCommand extends DiscordCommand {
 				{
 					name: 'Reading the result',
 					lines: [
-						'Each section is a table: **Sess** (blue) = sessions · **Time** (yellow) = credited playtime · **GEXP** (green) = guild exp in the period',
+						'Each section is a table: **Sess** (blue) = sessions · **Time** (yellow) = credited playtime · **Avg** (pink) = average session length · **GEXP** (green) = guild exp in the period',
 						'✅ sorted by most sessions · ❌ by fewest · 🛡️ has its own table plus when each exemption ends and why',
 						'`new` = joined the guild during the period, so they had less time',
 						'⚠️ = sessions or GEXP haven\'t been tracked for the whole period yet',
