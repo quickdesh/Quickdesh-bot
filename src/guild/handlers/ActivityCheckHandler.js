@@ -241,7 +241,8 @@ function checkActivity(guild, criteria, { lobbyHolder, exemptions = {} } = {}) {
             count,
             playtime,
             gexp: gexpSince(record, since),
-            isNew: member.joined !== null && member.joined > since
+            isNew: member.joined !== null && member.joined > since,
+            rank: member.rank ?? null
         }
 
         const exemption = exemptions[member.uuid]
@@ -250,9 +251,28 @@ function checkActivity(guild, criteria, { lobbyHolder, exemptions = {} } = {}) {
         else inactive.push(entry)
     }
 
-    active.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    inactive.sort((a, b) => a.count - b.count || a.gexp - b.gexp || a.name.localeCompare(b.name))
-    exempt.sort((a, b) => a.exemption.until - b.exemption.until)
+    const rankOrder = new Map((guild.ranks ?? []).map((rank, i) => [rank, i]))
+    const rankIndex = entry => rankOrder.get(entry.rank) ?? rankOrder.size
+
+    active.sort((a, b) =>
+        rankIndex(a) - rankIndex(b) ||
+        b.count - a.count ||
+        b.playtime - a.playtime ||
+        b.gexp - a.gexp ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    )
+    inactive.sort((a, b) =>
+        rankIndex(a) - rankIndex(b) ||
+        a.count - b.count ||
+        a.playtime - b.playtime ||
+        a.gexp - b.gexp ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    )
+    exempt.sort((a, b) =>
+        rankIndex(a) - rankIndex(b) ||
+        a.exemption.until - b.exemption.until ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    )
 
     return { active, inactive, exempt, trackingSince: trackingStart(data), gexpSince: gexpTrackingStart(data), since }
 }

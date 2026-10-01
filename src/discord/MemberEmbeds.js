@@ -24,6 +24,9 @@ const C = {
 const COLORS = {
     guild: 0x47F049,
     member: 0xBCB496,
+    active: 0x248046,
+    inactive: 0xDA373C,
+    exempt: 0x5865F2,
     activity: 0x248046,
     skyblock: 0x5865F2,
     dungeons: 0xDA373C
@@ -466,21 +469,54 @@ function formatHours(seconds) {
     return hours > 0 ? `${hours}h` : `${Math.floor(seconds / 60)}m`
 }
 
-function packMessages(first, fields, makeContinuation) {
-    const messages = [first]
-    let current = first
-    let size = (first.data.title?.length ?? 0) + (first.data.description?.length ?? 0) + 200
+function embedSize(embed) {
+    const data = embed.data
+    return (data.title?.length ?? 0) + (data.description?.length ?? 0) + (data.footer?.text?.length ?? 0) +
+        (data.fields ?? []).reduce((sum, field) => sum + field.name.length + field.value.length, 0)
+}
 
-    for (const field of fields) {
-        const fieldSize = field.name.length + field.value.length
-        if ((current.data.fields?.length ?? 0) >= 25 || size + fieldSize > 5500) {
-            current = makeContinuation()
-            messages.push(current)
-            size = (current.data.title?.length ?? 0) + (current.data.description?.length ?? 0) + 200
-        }
-        current.addFields(field)
-        size += fieldSize
+function sectionEmbeds(title, color, entries, emptyText, extraFields = [], options = {}) {
+    const tables = activityTables(entries, 4096 - COLUMNS_LINE.length - 2, options)
+
+    if (tables.length === 0) {
+        return [new EmbedBuilder().setColor(color).setTitle(title).setDescription(emptyText)]
     }
+
+    const embeds = tables.map((table, i) =>
+        new EmbedBuilder()
+            .setColor(color)
+            .setTitle(i === 0 ? title : `${title} (continued)`)
+            .setDescription(`${COLUMNS_LINE}\n${table}`)
+    )
+
+    for (const field of extraFields) {
+        let last = embeds[embeds.length - 1]
+        if ((last.data.fields?.length ?? 0) >= 25 || embedSize(last) + field.name.length + field.value.length > 5500) {
+            last = new EmbedBuilder().setColor(color).setTitle(`${title} (continued)`).setDescription(COLUMNS_LINE)
+            embeds.push(last)
+        }
+        last.addFields(field)
+    }
+
+    return embeds
+}
+
+function groupIntoMessages(embeds) {
+    const messages = []
+    let current = []
+    let size = 0
+
+    for (const embed of embeds) {
+        const embedLength = embedSize(embed)
+        if (current.length && (current.length >= 10 || size + embedLength > 5800)) {
+            messages.push({ embeds: current })
+            current = []
+            size = 0
+        }
+        current.push(embed)
+        size += embedLength
+    }
+    if (current.length) messages.push({ embeds: current })
 
     return messages
 }
@@ -507,27 +543,31 @@ const TABLE = {
 
 const COLUMNS_LINE = "Columns: **Sess** = sessions · **Time** = credited playtime · **Avg** = average session length · **GEXP** = guild exp in the period"
 
-function activityTable(title, entries) {
-    if (entries.length === 0) return [{ name: title, value: "Nobody", inline: false }]
-
+function activityTables(entries, limit, { groupByRank = false } = {}) {
     const wrap = rows => `\`\`\`ansi\n${TABLE.header}\n${rows.join("\n")}\n\`\`\``
-    const fields = []
+    const rankRow = rank => `${C.bold}-- ${rank ?? "Unknown rank"} --${C.reset}`
+    const tables = []
     let rows = []
+    let currentRank
 
     for (const entry of entries) {
-        const row = TABLE.row(entry)
-        if (rows.length && wrap([...rows, row]).length > 1024) {
-            fields.push(rows)
-            rows = []
-        }
-        rows.push(row)
-    }
-    if (rows.length) fields.push(rows)
+        const newRank = groupByRank && entry.rank !== currentRank
+        const additions = [...(newRank ? [rankRow(entry.rank)] : []), TABLE.row(entry)]
 
-    return fields.map((group, i) => ({ name: i === 0 ? title : "\u200b", value: wrap(group), inline: false }))
+        if (rows.length && wrap([...rows, ...additions]).length > limit) {
+            tables.push(wrap(rows))
+            rows = groupByRank && !newRank ? [rankRow(currentRank)] : []
+        }
+
+        rows.push(...additions)
+        currentRank = entry.rank
+    }
+    if (rows.length) tables.push(wrap(rows))
+
+    return tables
 }
 
-function buildActivityListMessages({ active, inactive, exempt, labels, capped, trackingSince, gexpSince, since }) {
+function buildActivityListMessages({ active, inactive, exempt, labels, capped, trackingSince, gexpSince, since, prefix = "+" }) {
     const formatExempt = entry =>
         `**${escapeName(entry.name)}** · ends <t:${entry.exemption.until}:R>${entry.exemption.reason ? ` · ${entry.exemption.reason}` : ""}${entry.exemption.by ? ` · by ${entry.exemption.by}` : ""}`
 
@@ -539,7 +579,7 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
         `Active = ${requirementText(labels)}`,
         "",
         `✅ **${active.length}** active · ❌ **${inactive.length}** inactive · 🛡️ **${exempt.length}** exempt`,
-        COLUMNS_LINE
+        `Type \`${prefix}help activelist\` to see how sessions are counted, what each column means and every option you can change.`
     ]
 
     if (trackingSince === null) {
@@ -556,35 +596,27 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
         }
     }
 
-    const first = new EmbedBuilder()
-        .setColor(COLORS.guild)
-        .setTitle("📋 Activity Check")
-        .setDescription(description.join("\n"))
-
-    const fields = [
-        ...activityTable(`✅ Active (${active.length})`, active),
-        ...activityTable(`❌ Inactive (${inactive.length})`, inactive),
-        ...(exempt.length ? [
-            ...activityTable(`🛡️ Exempt (${exempt.length})`, exempt),
-            ...chunkItems("🛡️ Exemption details", exempt.map(formatExempt), "\n")
-        ] : [])
-    ]
-
-    const embeds = packMessages(first, fields, () =>
-        new EmbedBuilder()
-            .setColor(COLORS.guild)
-            .setTitle("📋 Activity Check (continued)")
-            .setDescription(COLUMNS_LINE)
-    )
-    const last = embeds[embeds.length - 1]
-    last.setTimestamp(Date.now())
-
     const notes = []
     if ([...active, ...inactive, ...exempt].some(e => e.isNew)) notes.push("new = joined the guild during this period")
     if (capped) notes.push("Only 180 days of sessions are stored, so the time was capped at 6M")
-    if (notes.length) last.setFooter({ text: notes.join(" · ") })
 
-    return embeds.map(embed => ({ embeds: [embed] }))
+    const header = new EmbedBuilder()
+        .setColor(COLORS.guild)
+        .setTitle("📋 Activity Check")
+        .setDescription(description.join("\n"))
+    if (notes.length) header.setFooter({ text: notes.join(" · ") })
+
+    const embeds = [
+        header,
+        ...sectionEmbeds(`✅ Active (${active.length})`, COLORS.active, active, "Nobody meets the requirement.", [], { groupByRank: true }),
+        ...sectionEmbeds(`❌ Inactive (${inactive.length})`, COLORS.inactive, inactive, "Everyone meets the requirement.", [], { groupByRank: true }),
+        ...(exempt.length ? sectionEmbeds(`🛡️ Exempt (${exempt.length})`, COLORS.exempt, exempt, "",
+            chunkItems("Exemption details", exempt.map(formatExempt), "\n"), { groupByRank: true }) : [])
+    ]
+
+    embeds[embeds.length - 1].setTimestamp(Date.now())
+
+    return groupIntoMessages(embeds)
 }
 
 function buildActivityDefaultsMessage(labels, { title, note } = {}) {

@@ -331,7 +331,7 @@ class DiscordManager extends CommunicationBridge {
         return
       }
 
-      for (const message of buildActivityListMessages(report)) {
+      for (const message of buildActivityListMessages({ ...report, prefix: this.app.config.discord.prefix })) {
         await channel.send(message)
       }
     } catch (err) {
