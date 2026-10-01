@@ -23,5 +23,8 @@
 		"messageMode": "webhook",
 		"thumbnail": "image link",
 		"guildname": "Name of Guild"
+	},
+	"hypixel": {
+		"apiKey": "Hypixel API key"
 	}
 }

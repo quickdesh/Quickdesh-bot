@@ -28,6 +28,10 @@ class Configuration {
 			guildname: null,
 			blockedWords: null
 		},
+		hypixel: {
+			apiKey: null,
+			guildName: null
+		},
 	}
 
 	environmentOverrides = {
@@ -50,7 +54,9 @@ class Configuration {
       	DISCORD_MESSAGEMODE: val => (this.properties.discord.messageMode = val),
       	DISCORD_THUMBNAIL: val => (this.properties.discord.thumbnail = val),
       	DISCORD_GUILDNAME: val => (this.properties.discord.guildname = val),
-		DISCORD_BLOCKED_WORDS: val => (this.properties.discord.blockedWords = val)
+		DISCORD_BLOCKED_WORDS: val => (this.properties.discord.blockedWords = val),
+		HYPIXEL_API_KEY: val => (this.properties.hypixel = { ...this.properties.hypixel, apiKey: val }),
+		HYPIXEL_GUILD_NAME: val => (this.properties.hypixel = { ...this.properties.hypixel, guildName: val })
 	}
 
 	constructor() {
@@ -75,6 +81,10 @@ class Configuration {
 
 	get discord() {
 		return this.properties.discord
+	}
+
+	get hypixel() {
+		return this.properties.hypixel || {}
 	}
 }
 

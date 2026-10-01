@@ -2,6 +2,7 @@ const Configuration = require('./Configuration')
 const DiscordManager = require('./discord/DiscordManager')
 const MinecraftManager = require('./minecraft/MinecraftManager')
 const Logger = require('./Logger')
+const GuildManager = require('./guild/GuildManager')
 
 class Application {
   async register() {
@@ -18,6 +19,7 @@ class Application {
   async connect() {
     this.discord.connect()
     this.minecraft.connect()
+    GuildManager.startGuildExpSync(this)
   }
 }
 

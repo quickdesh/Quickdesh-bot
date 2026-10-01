@@ -1,5 +1,6 @@
 const UuidAndRanksHandler = require("./handlers/UuidAndRanksHandler.js")
 const SessionsHandler = require("./handlers/SessionsHandler.js")
+const GuildExpHandler = require("./handlers/GuildExpHandler.js")
 
 async function ensureUser(input) {
     const player =
@@ -80,7 +81,12 @@ async function loadPlayers(gr, gm) {
     }
 }
 
+function startGuildExpSync(app) {
+    GuildExpHandler.start(app)
+}
+
 module.exports = {
+    startGuildExpSync,
     playerJoin,
     playerLeave,
     syncPlayers,

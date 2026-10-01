@@ -7,85 +7,8 @@ const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
-const fs = require("fs")
-const AOTE_FILE = "./AspectOfTheEgg.json"
-
-function loadMemberData(username) {
-    if (!fs.existsSync(AOTE_FILE)) return null
-    const data = JSON.parse(fs.readFileSync(AOTE_FILE, "utf8"))
-    const lower = username.toLowerCase()
-    const key = Object.keys(data).find(k => k.toLowerCase() === lower)
-    return key ? data[key] : null
-}
-
-function formatDuration(seconds) {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
-}
-
-function statsSince(sessions, since, now) {
-    let time = 0
-    let count = 0
-    for (const s of sessions) {
-        if (s.leave === -1) {
-            if (s.join >= since) count++
-            continue
-        }
-        const end = s.leave === 0 ? now : s.leave
-        const start = Math.max(s.join, since)
-        if (end > start) {
-            time += end - start
-            count++
-        }
-    }
-    return `${formatDuration(time)}\n${count} session${count === 1 ? "" : "s"}`
-}
-
-function activityFields(member) {
-
-    const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
-
-    if (sessions.length === 0) {
-        return [{ name: "Activity", value: "No tracked sessions yet", inline: false }]
-    }
-
-    const now = Math.floor(Date.now() / 1000)
-    const day = 24 * 60 * 60
-    const last = sessions[sessions.length - 1]
-
-    let status
-    if (last.leave === 0) {
-        status = `🟢 Online since <t:${last.join}:R>`
-    } else if (last.leave > 0) {
-        status = `⚫ Last seen <t:${last.leave}:R>`
-    } else {
-        status = `⚫ Last seen <t:${last.join}:R> (leave time unknown)`
-    }
-
-    const finished = sessions.filter(s => s.join >= now - 180 * day && s.leave > 0)
-    const average = finished.length
-        ? formatDuration(finished.reduce((sum, s) => sum + (s.leave - s.join), 0) / finished.length)
-        : "N/A"
-
-    const fields = [
-        { name: "Status", value: status, inline: false },
-        { name: "Last Join", value: `<t:${last.join}:f> (<t:${last.join}:R>)`, inline: false },
-        { name: "Playtime (7d)", value: statsSince(sessions, now - 7 * day, now), inline: true },
-        { name: "Playtime (1m)", value: statsSince(sessions, now - 30 * day, now), inline: true },
-        { name: "Playtime (3m)", value: statsSince(sessions, now - 90 * day, now), inline: true },
-        { name: "Playtime (6m)", value: statsSince(sessions, now - 180 * day, now), inline: true },
-        { name: "Avg Session (6m)", value: average, inline: true },
-        { name: "\u200b", value: "\u200b", inline: true }
-    ]
-
-    if (Array.isArray(member["Old names"]) && member["Old names"].length) {
-        fields.push({ name: "Previous Names", value: member["Old names"].join(", ").slice(0, 1024), inline: false })
-    }
-
-    return fields
-}
-
+const { getPlayerStats } = require("../guild/handlers/HypixelStatsHandler.js")
+const { buildMemberInfoMessage, loadMemberData } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -428,75 +351,40 @@ class DiscordManager extends CommunicationBridge {
 	
 
 	}
-  memberInformation({player,rank,joined,exp,chatTypes}){
+  async memberInformation({player,rank,joined,exp,chatTypes}){
     this.app.log.broadcast('Member Info of ' + player, 'Command')
 
     var chatChannels = this.getChatChannels(chatTypes)
 
-    let username = player.replace(/\[.+\]\s*/, '')
+    const username = player.replace(/\[.+\]\s*/, '')
     const member = loadMemberData(username)
+
+    let stats = null
+    if (member?.uuid) {
+      try {
+        stats = await getPlayerStats(member.uuid, this.app.config.hypixel.apiKey)
+        for (const error of stats.errors) this.app.log.error(`Member info for ${username}: ${error}`)
+      } catch (err) {
+        this.app.log.error(`Member info for ${username}: ${err.message}`)
+      }
+    }
+
+    const message = buildMemberInfoMessage({
+      player,
+      username,
+      rank,
+      joined,
+      exp,
+      member,
+      stats,
+      thumbnail: this.app.config.discord.thumbnail
+    })
 
     for(let i = 0; i < chatChannels.length; i++)
 
     {this.app.discord.client.channels.fetch(chatChannels[i]).then(channel => {
-
-      var MyDate = joined.split(" ")[1].split("-")
-      if (MyDate[1]=="01"){
-        MyDate[1]="January"
-      }
-      else if (MyDate[1]=="02"){
-        MyDate[1]="February"
-      }
-      else if (MyDate[1]=="03"){
-        MyDate[1]="March"
-      }
-      else if (MyDate[1]=="04"){
-        MyDate[1]="April"
-      }
-      else if (MyDate[1]=="05"){
-        MyDate[1]="May"
-      }
-      else if (MyDate[1]=="06"){
-        MyDate[1]="June"
-      }
-      else if (MyDate[1]=="07"){
-        MyDate[1]="July"
-      }
-      else if (MyDate[1]=="08"){
-        MyDate[1]="August"
-      }
-      else if (MyDate[1]=="09"){
-        MyDate[1]="September"
-      }
-      else if (MyDate[1]=="10"){
-        MyDate[1]="October"
-      }
-      else if (MyDate[1]=="11"){
-        MyDate[1]="November"
-      }
-      else if (MyDate[1]=="12"){
-        MyDate[1]="December"
-      }
-
-      const embed = new EmbedBuilder()
-      .setColor(0x47F049)
-      .setTimestamp(Date.now())
-      .setTitle(player)
-      .setThumbnail(this.app.config.discord.thumbnail)
-      .addFields({ name: "Rank", value: rank.replace("Rank: ",""), inline: false})
-      .addFields({ name: "Joined", value: `${MyDate[2]} ${MyDate[1]} ${MyDate[0]}`, inline: false})
-      // .addFields({ name: "Guild Exp Contributions", value: exp, inline: false})
-      .addFields(...activityFields(member))
-
-      const player_links = new ActionRowBuilder().addComponents(
-                                  new ButtonBuilder().setLabel(`Namemc`).setEmoji({ name: "qnamemc", id: "933348124175511653" }).setStyle(ButtonStyle.Link).setURL(`https://namemc.com/profile/${username}`),
-                                  new ButtonBuilder().setLabel(`Skycrypt`).setEmoji({ name: "qskycrypt", id: "933347115030175865" }).setStyle(ButtonStyle.Link).setURL(`https://sky.shiiyu.moe/stats/${username}`)
-                                )
-
-      channel.send({ embeds: [embed], components:[player_links] })
+      channel.send(message)
     })}
-
-
   }
 
   friendList({list}){

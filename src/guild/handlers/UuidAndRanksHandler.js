@@ -15,10 +15,15 @@ function loadExisting() {
 }
 
 function save(data) {
-    const json = JSON.stringify(data, null, 2).replace(
-        /"last_sessions": (\[[^\]]*\])/g,
-        (_, sessions) => `"last_sessions": ${JSON.stringify(JSON.parse(sessions))}`
-    )
+    const json = JSON.stringify(data, null, 2)
+        .replace(
+            /"last_sessions": (\[[^\]]*\])/g,
+            (_, sessions) => `"last_sessions": ${JSON.stringify(JSON.parse(sessions))}`
+        )
+        .replace(
+            /"gexp_history": (\{[^}]*\})/g,
+            (_, history) => `"gexp_history": ${JSON.stringify(JSON.parse(history))}`
+        )
     fs.writeFileSync(FILE_PATH + ".tmp", json)
     fs.renameSync(FILE_PATH + ".tmp", FILE_PATH)
 }
@@ -230,4 +235,4 @@ async function syncUuidAndRanks(input) {
     return confirmed
 }
 
-module.exports = { syncUuidAndRanks, findKey }
+module.exports = { syncUuidAndRanks, findKey, fetchNameByUuid, formatUUID, loadExisting, save }
