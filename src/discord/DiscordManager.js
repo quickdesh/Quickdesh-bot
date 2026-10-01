@@ -7,7 +7,7 @@ const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 const GuildManager = require("../guild/GuildManager.js")
-const { buildMemberInfoMessage, buildJoinRequestEmbeds, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
+const { buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -224,7 +224,22 @@ class DiscordManager extends CommunicationBridge {
 
     const requestEmbed = info ? { ...embed, description: `${embed.description}\n🆔 \`${info.uuid}\`` } : embed
     const statEmbeds = info ? buildJoinRequestEmbeds(info) : []
-    await sent.edit({ embeds: [requestEmbed, ...statEmbeds], components: [acceptReject, playerLinks] })
+    const profileRow = info ? buildJoinRequestProfileRow(info) : null
+    await sent.edit({ embeds: [requestEmbed, ...statEmbeds], components: [acceptReject, ...(profileRow ? [profileRow] : []), playerLinks] })
+  }
+
+  async joinRequestProfile({ message, name, profileId }){
+    try {
+      const info = await GuildManager.getMemberInfo(this.app, name)
+      if (!info) return
+
+      const components = message.components.map(row =>
+        row.components[0]?.customId?.startsWith("joinreq-profile:") ? buildJoinRequestProfileRow(info, profileId) ?? row : row
+      )
+      await message.edit({ embeds: [message.embeds[0], ...buildJoinRequestEmbeds({ ...info, profileId })], components })
+    } catch (err) {
+      this.app.log.error(`Join request profile switch failed for ${name}: ${err.message}`)
+    }
   }
 
   guildOnline({ guildName, groups, chatTypes }){

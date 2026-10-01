@@ -355,10 +355,10 @@ function linkButtons(username) {
     )
 }
 
-function profileSelect(name, page, profiles, currentId) {
+function profileSelect(customId, profiles, currentId) {
     return new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId(`meminfo-profile:${page}:${name}`)
+            .setCustomId(customId)
             .setPlaceholder("Switch profile")
             .addOptions(profiles.slice(0, 25).map(profile => ({
                 label: `${profile.selected ? "⭐ " : ""}${profile.name}`,
@@ -421,14 +421,14 @@ function buildMemberInfoMessage({ name, uuid, member, stats: rawStats, thumbnail
         embeds: [embed],
         components: [
             pageButtons(name, current, Object.keys(pages), chosenId),
-            ...(showProfiles ? [profileSelect(name, current, profiles, profile.id)] : []),
+            ...(showProfiles ? [profileSelect(`meminfo-profile:${current}:${name}`, profiles, profile.id)] : []),
             linkButtons(name)
         ]
     }
 }
 
-function buildJoinRequestEmbeds({ name, uuid, member, stats: rawStats }) {
-    const { stats } = pickProfile(rawStats)
+function buildJoinRequestEmbeds({ name, uuid, member, stats: rawStats, profileId = null }) {
+    const { stats, profile } = pickProfile(rawStats, profileId)
     const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
     const author = { name: `${hypixelRank}${name}`, iconURL: `https://mc-heads.net/avatar/${uuid}` }
 
@@ -439,8 +439,15 @@ function buildJoinRequestEmbeds({ name, uuid, member, stats: rawStats }) {
 
     return [
         skyblockEmbed(stats).setAuthor(author),
-        dungeonsEmbed(stats).setAuthor(author).setFooter({ text: `UUID: ${uuid} · showing their selected profile · use member <name> for every page and profile` })
+        dungeonsEmbed(stats).setAuthor(author).setFooter({ text: `UUID: ${uuid} · showing ${profile?.selected === false ? `their ${profile.name} profile` : "their selected profile"} · use member <name> for every page` })
     ]
+}
+
+function buildJoinRequestProfileRow({ name, stats }, profileId = null) {
+    const profiles = stats?.profiles ?? []
+    if (profiles.length < 2) return null
+    const { profile } = pickProfile(stats, profileId)
+    return profileSelect(`joinreq-profile:${name}`, profiles, profile.id)
 }
 
 function buildGuildListMessage(guild, { thumbnail, lobbyHolder }) {
@@ -688,4 +695,4 @@ function buildExemptionListMessage(exemptions) {
     return { embeds: [embed] }
 }
 
-module.exports = { buildMemberInfoMessage, buildJoinRequestEmbeds, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }
+module.exports = { buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }

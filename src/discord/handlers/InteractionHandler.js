@@ -13,6 +13,12 @@ class InteractionHandler {
             return this.discord.memberInfoPage({ message: butt.message, page, name, profileId: butt.values[0] })
         }
 
+        if (butt.isStringSelectMenu?.() && butt.customId.startsWith("joinreq-profile:")) {
+            await butt.deferUpdate()
+            const [, name] = butt.customId.split(":")
+            return this.discord.joinRequestProfile({ message: butt.message, name, profileId: butt.values[0] })
+        }
+
         if (!butt.isButton()) return
         
         if (butt.isButton()){
@@ -24,7 +30,7 @@ class InteractionHandler {
         }
         const [action, player] = butt.customId.split(" ")
         if (action == "acceptjoinee" || action == "rejectjoinee") {
-            await butt.message.edit({ embeds: butt.message.embeds, components: [butt.message.components[1]] })
+            await butt.message.edit({ embeds: butt.message.embeds, components: butt.message.components.slice(1) })
 
             if (action == "acceptjoinee") {
                 this.discord.app.minecraft.bot.chat(`/g accept ${player}`)
