@@ -27,6 +27,7 @@ class MemInfoCommand extends DiscordCommand {
 					name: 'Details',
 					lines: [
 						'Use the buttons under the message to switch pages; greyed out pages have no data',
+						'On 🏝️ SkyBlock and ⚔️ Dungeons, use the **Switch profile** menu to see another profile (⭐ = the one selected in-game, ♻️ Ironman, 🏝️ Stranded, 🎲 Bingo). The chosen profile stays when you change pages',
 						'Data comes from the Hypixel API and is cached for 5 minutes',
 						'Works for any player, not just guild members (non-members show "Not in guild")'
 					]

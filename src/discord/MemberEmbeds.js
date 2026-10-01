@@ -1,5 +1,5 @@
 const fs = require("fs")
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js")
 const { summarizeSessions, getSessionRules } = require("../guild/handlers/ActivityCheckHandler.js")
 
 const AOTE_FILE = "./AspectOfTheEgg.json"
@@ -312,7 +312,7 @@ function skyblockEmbed(stats) {
 function dungeonsEmbed(stats) {
     return new EmbedBuilder()
         .setColor(COLORS.dungeons)
-        .setTitle("⚔️ Dungeons")
+        .setTitle(`⚔️ Dungeons (${stats.profile})`)
         .addFields(
             { name: "🎓 Levels", value: dungeonsBlock(stats.dungeons), inline: false },
             { name: "🏆 Runs", value: dungeonRunsBlock(stats.dungeons), inline: false }
@@ -326,11 +326,17 @@ const PAGES = [
     { id: "dungeons", emoji: "⚔️", style: ButtonStyle.Danger }
 ]
 
-function pageButtons(name, current, available) {
+const PROFILE_MODES = {
+    ironman: "♻️ Ironman",
+    island: "🏝️ Stranded",
+    bingo: "🎲 Bingo"
+}
+
+function pageButtons(name, current, available, profileId) {
     return new ActionRowBuilder().addComponents(
         PAGES.map(page =>
             new ButtonBuilder()
-                .setCustomId(`meminfo:${page.id}:${name}`)
+                .setCustomId(`meminfo:${page.id}:${name}${profileId ? `:${profileId}` : ""}`)
                 .setEmoji(page.emoji)
                 .setStyle(page.id === current ? page.style : ButtonStyle.Secondary)
                 .setDisabled(!available.includes(page.id) || (page.id === current && page.style === ButtonStyle.Secondary))
@@ -345,7 +351,32 @@ function linkButtons(username) {
     )
 }
 
-function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = getSessionRules(), page = "member" }) {
+function profileSelect(name, page, profiles, currentId) {
+    return new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId(`meminfo-profile:${page}:${name}`)
+            .setPlaceholder("Switch profile")
+            .addOptions(profiles.slice(0, 25).map(profile => ({
+                label: `${profile.selected ? "⭐ " : ""}${profile.name}`,
+                value: profile.id,
+                description: [profile.selected ? "Selected in-game" : null, PROFILE_MODES[profile.mode] ?? null].filter(Boolean).join(" · ") || undefined,
+                default: profile.id === currentId
+            })))
+    )
+}
+
+function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = getSessionRules(), page = "member", profileId = null }) {
+    const profiles = stats?.profiles ?? []
+    const profile = profiles.find(p => p.id === profileId) ?? profiles.find(p => p.selected) ?? profiles[0] ?? null
+    if (profile) {
+        stats = {
+            ...stats,
+            profile: `${profile.name}${PROFILE_MODES[profile.mode] ? ` ${PROFILE_MODES[profile.mode].split(" ")[0]}` : ""}`,
+            skyblock: profile.skyblock,
+            dungeons: profile.dungeons
+        }
+    }
+
     const pages = { member: memberEmbed({ name, member, stats, thumbnail }) }
 
     const activity = activityEmbed({ member, stats, rules })
@@ -370,9 +401,16 @@ function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = 
     embed.setTimestamp(Date.now())
     if (stats?.errors?.length) embed.setFooter({ text: stats.errors.join(" | ").slice(0, 2048) })
 
+    const showProfiles = ["skyblock", "dungeons"].includes(current) && profiles.length > 1
+    const chosenId = profile && !profile.selected ? profile.id : null
+
     return {
         embeds: [embed],
-        components: [pageButtons(name, current, Object.keys(pages)), linkButtons(name)]
+        components: [
+            pageButtons(name, current, Object.keys(pages), chosenId),
+            ...(showProfiles ? [profileSelect(name, current, profiles, profile.id)] : []),
+            linkButtons(name)
+        ]
     }
 }
 

@@ -7,14 +7,20 @@ class InteractionHandler {
 	}
 
     async buttonInteraction(butt) {
+        if (butt.isStringSelectMenu?.() && butt.customId.startsWith("meminfo-profile:")) {
+            await butt.deferUpdate()
+            const [, page, name] = butt.customId.split(":")
+            return this.discord.memberInfoPage({ message: butt.message, page, name, profileId: butt.values[0] })
+        }
+
         if (!butt.isButton()) return
         
         if (butt.isButton()){
             await butt.deferUpdate()
         }
         if (butt.customId.startsWith("meminfo:")) {
-            const [, page, name] = butt.customId.split(":")
-            return this.discord.memberInfoPage({ message: butt.message, page, name })
+            const [, page, name, profileId] = butt.customId.split(":")
+            return this.discord.memberInfoPage({ message: butt.message, page, name, profileId })
         }
         if(butt.customId.split(" ")[0] == "acceptjoinee"){
             butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})

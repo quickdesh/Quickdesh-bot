@@ -427,7 +427,7 @@ class DiscordManager extends CommunicationBridge {
     }
   }
 
-  async memberInfoPage({ message, page, name }){
+  async memberInfoPage({ message, page, name, profileId }){
     try {
       const info = await GuildManager.getMemberInfo(this.app, name)
       if (!info) return
@@ -439,7 +439,8 @@ class DiscordManager extends CommunicationBridge {
         stats: info.stats,
         rules: info.rules,
         thumbnail: this.app.config.discord.thumbnail,
-        page
+        page,
+        profileId
       }))
     } catch (err) {
       this.app.log.error(`Member info page failed for ${name}: ${err.message}`)

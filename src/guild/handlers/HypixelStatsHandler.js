@@ -179,15 +179,25 @@ async function getPlayerStats(uuid, apiKey) {
     guildStats(cleanUuid, apiKey)
   ]);
 
-  const stats = { profile: null, skyblock: null, dungeons: null, guild: null, errors: [] };
+  const stats = { profile: null, skyblock: null, dungeons: null, profiles: [], guild: null, errors: [] };
 
   if (profilesResult.status === "fulfilled") {
-    const profile = (profilesResult.value.profiles || []).find(p => p.selected);
-    const member = profile?.members?.[cleanUuid];
-    if (member) {
-      stats.profile = profile.cute_name;
-      stats.skyblock = skyblockStats(profile, member);
-      stats.dungeons = dungeonStats(member);
+    stats.profiles = (profilesResult.value.profiles || [])
+      .filter(profile => profile.members?.[cleanUuid])
+      .map(profile => ({
+        id: profile.profile_id,
+        name: profile.cute_name,
+        mode: profile.game_mode ?? null,
+        selected: !!profile.selected,
+        skyblock: skyblockStats(profile, profile.members[cleanUuid]),
+        dungeons: dungeonStats(profile.members[cleanUuid])
+      }));
+
+    const selected = stats.profiles.find(p => p.selected) ?? stats.profiles[0];
+    if (selected) {
+      stats.profile = selected.name;
+      stats.skyblock = selected.skyblock;
+      stats.dungeons = selected.dungeons;
     }
   } else {
     stats.errors.push(`SkyBlock: ${profilesResult.reason.message}`);
