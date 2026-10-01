@@ -19,8 +19,8 @@ class InteractionHandler {
         if(butt.customId.split(" ")[0] == "acceptjoinee"){
             butt.message.edit({ embeds: butt.message.embeds,components: [butt.message.components[1]]})
             const player = butt.customId.split(" ")[1]
-            this.app.minecraft.bot.chat(`/g accept ${player}`)
-            this.app.minecraft.bot.chat(`/g invite ${player}`)
+            this.discord.app.minecraft.bot.chat(`/g accept ${player}`)
+            this.discord.app.minecraft.bot.chat(`/g invite ${player}`)
             butt.message.reply({content: `${butt.user} accepted ${player}`})
         }
         else if(butt.customId.split(" ")[0] == "rejectjoinee"){

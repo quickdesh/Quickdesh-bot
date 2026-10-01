@@ -1,9 +1,9 @@
 const fs = require("fs")
 const { syncUuidAndRanks, findKey } = require("./UuidAndRanksHandler.js")
+const { getSessionRules } = require("./ActivityCheckHandler.js")
 
 const FILE_PATH = "./AspectOfTheEgg.json"
 
-const TEN_MINUTES = 600
 const ONE_HUNDRED_EIGHTY_DAYS = 180 * 24 * 60 * 60
 
 const UUID_RECHECK_MS = 5 * 60 * 1000
@@ -94,7 +94,7 @@ async function recordJoin(username, unixTime) {
             return
         }
 
-        if (unixTime - last.leave < TEN_MINUTES) {
+        if (unixTime - last.leave <= getSessionRules().mergeGap) {
             last.leave = 0
             setLastJoin(data[key])
             save(data)

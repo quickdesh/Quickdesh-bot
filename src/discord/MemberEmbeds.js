@@ -1,5 +1,6 @@
 const fs = require("fs")
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
+const { summarizeSessions, getSessionRules } = require("../guild/handlers/ActivityCheckHandler.js")
 
 const AOTE_FILE = "./AspectOfTheEgg.json"
 const DAY = 24 * 60 * 60
@@ -42,9 +43,10 @@ function bar(fraction, width = 10) {
 }
 
 function compact(n) {
-    if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`
-    if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
-    if (n >= 1e4) return `${(n / 1e3).toFixed(1)}k`
+    const short = (value, suffix) => `${value.toFixed(1).replace(/\.0$/, "")}${suffix}`
+    if (n >= 1e9) return short(n / 1e9, "B")
+    if (n >= 1e6) return short(n / 1e6, "M")
+    if (n >= 1e4) return short(n / 1e3, "k")
     return Math.floor(n).toLocaleString("en-US")
 }
 
@@ -70,46 +72,31 @@ function escapeName(name) {
     return name.replace(/_/g, "\\_")
 }
 
-function chunkFields(title, names) {
+function chunkItems(title, items, separator = " ") {
     const fields = []
     let current = []
     let length = 0
 
-    for (const name of names) {
-        const piece = `${escapeName(name)} ●`
-        if (current.length && length + piece.length + 1 > 1024) {
+    for (const piece of items) {
+        if (current.length && length + piece.length + separator.length > 1024) {
             fields.push(current)
             current = []
             length = 0
         }
         current.push(piece)
-        length += piece.length + 1
+        length += piece.length + separator.length
     }
     if (current.length) fields.push(current)
 
     return fields.map((group, i) => ({
-        name: i === 0 ? `-- ${title} --` : "\u200b",
-        value: group.join(" "),
+        name: i === 0 ? title : "\u200b",
+        value: group.join(separator),
         inline: false
     }))
 }
 
-function statsSince(sessions, since, now) {
-    let time = 0
-    let count = 0
-    for (const s of sessions) {
-        if (s.leave === -1) {
-            if (s.join >= since) count++
-            continue
-        }
-        const end = s.leave === 0 ? now : s.leave
-        const start = Math.max(s.join, since)
-        if (end > start) {
-            time += end - start
-            count++
-        }
-    }
-    return { time, count }
+function chunkFields(title, names) {
+    return chunkItems(`-- ${title} --`, names.map(name => `${escapeName(name)} ●`))
 }
 
 function statusFields(sessions) {
@@ -134,23 +121,21 @@ function statusFields(sessions) {
     ]
 }
 
-function activityBlock(sessions) {
+function activityBlock(sessions, rules) {
     const now = Math.floor(Date.now() / 1000)
     const periods = [["7 days", 7], ["1 month", 30], ["2 months", 60], ["3 months", 90], ["6 months", 180]]
 
     const lines = [`${C.bold}${"Period".padEnd(11)}${"Playtime".padStart(9)}${"Sessions".padStart(10)}${C.reset}`]
 
     for (const [label, days] of periods) {
-        const { time, count } = statsSince(sessions, now - days * DAY, now)
+        const { playtime: time, count } = summarizeSessions(sessions, rules, now - days * DAY, now)
         const perDay = time / days / 3600
         const color = perDay >= 2 ? C.green : perDay >= 0.5 ? C.yellow : C.red
         lines.push(`${C.label}${label.padEnd(11)}${color}${formatDuration(time).padStart(9)}${C.blue}${String(count).padStart(10)}${C.reset}`)
     }
 
-    const finished = sessions.filter(s => s.join >= now - 180 * DAY && s.leave > 0)
-    const average = finished.length
-        ? formatDuration(finished.reduce((sum, s) => sum + (s.leave - s.join), 0) / finished.length)
-        : "N/A"
+    const halfYear = summarizeSessions(sessions, rules, now - 180 * DAY, now)
+    const average = halfYear.count ? formatDuration(halfYear.playtime / halfYear.count) : "N/A"
 
     lines.push(divider(30))
     lines.push(`${C.label}${"Avg session".padEnd(11)}${C.bold}${average.padStart(9)}${C.reset}`)
@@ -292,7 +277,7 @@ function memberEmbed({ name, member, stats, thumbnail }) {
     return embed
 }
 
-function activityEmbed({ member, stats }) {
+function activityEmbed({ member, stats, rules }) {
     const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
     const guild = stats?.guild
 
@@ -307,7 +292,7 @@ function activityEmbed({ member, stats }) {
     }
 
     if (sessions.length) {
-        embed.addFields({ name: "🕹️ Playtime", value: activityBlock(sessions), inline: false })
+        embed.addFields({ name: "🕹️ Playtime", value: activityBlock(sessions, rules), inline: false })
     }
 
     return embed
@@ -360,10 +345,10 @@ function linkButtons(username) {
     )
 }
 
-function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, page = "member" }) {
+function buildMemberInfoMessage({ name, uuid, member, stats, thumbnail, rules = getSessionRules(), page = "member" }) {
     const pages = { member: memberEmbed({ name, member, stats, thumbnail }) }
 
-    const activity = activityEmbed({ member, stats })
+    const activity = activityEmbed({ member, stats, rules })
     if (activity) pages.activity = activity
 
     if (stats?.skyblock) {
@@ -438,4 +423,136 @@ function buildGuildOnlineMessage({ guildName, groups }, { thumbnail, lobbyHolder
     return { embeds: [embed] }
 }
 
-module.exports = { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage, loadMemberData }
+function formatHours(seconds) {
+    const hours = Math.floor(seconds / 3600)
+    return hours > 0 ? `${hours}h` : `${Math.floor(seconds / 60)}m`
+}
+
+function activityStats(entry) {
+    return `${entry.count} · ${formatHours(entry.playtime)} · ${compact(entry.gexp)}`
+}
+
+function packMessages(first, fields, color) {
+    const messages = [first]
+    let current = first
+    let size = (first.data.title?.length ?? 0) + (first.data.description?.length ?? 0) + 200
+
+    for (const field of fields) {
+        const fieldSize = field.name.length + field.value.length
+        if ((current.data.fields?.length ?? 0) >= 25 || size + fieldSize > 5500) {
+            current = new EmbedBuilder().setColor(color)
+            messages.push(current)
+            size = 200
+        }
+        current.addFields(field)
+        size += fieldSize
+    }
+
+    return messages
+}
+
+function requirementText(labels) {
+    const parts = []
+    if (labels.sessions !== null) parts.push(`**${labels.sessions}+** sessions`)
+    if (labels.gexp !== null) parts.push(`**${compact(labels.gexp)}+** GEXP`)
+    if (labels.playtime !== null) parts.push(`**${labels.playtime}+** playtime`)
+    return parts.join(labels.match === "all" ? " **and** " : " **or** ")
+}
+
+function buildActivityListMessages({ active, inactive, exempt, labels, capped, trackingSince, gexpSince, since }) {
+    const format = entry => `${escapeName(entry.name)} (${activityStats(entry)})${entry.isNew ? " 🆕" : ""} ●`
+    const formatExempt = entry =>
+        `**${escapeName(entry.name)}** (${activityStats(entry)}) · ends <t:${entry.exemption.until}:R>${entry.exemption.reason ? ` · ${entry.exemption.reason}` : ""}`
+
+    const description = [
+        `Sessions in the last **${labels.time}** that lasted at least **${labels.minSessionTime}**`,
+        `Each join counts once, credited up to **${labels.maxSessionTime}** of playtime`,
+        `Long continuous sessions count again every **${labels.sessionCooldown}**`,
+        `Rejoining within **${labels.mergeGap}** counts as the same session`,
+        `Active = ${requirementText(labels)}`,
+        "",
+        `✅ **${active.length}** active · ❌ **${inactive.length}** inactive · 🛡️ **${exempt.length}** exempt`,
+        "Shown as **(sessions · playtime · GEXP)**"
+    ]
+
+    if (trackingSince === null) {
+        description.push("", "⚠️ No sessions have been tracked yet, so everyone shows as inactive.")
+    } else if (trackingSince > since) {
+        description.push("", `⚠️ Sessions have only been tracked since <t:${trackingSince}:D>, which is shorter than the **${labels.time}** being checked. Members may look less active than they are.`)
+    }
+
+    if (labels.gexp !== null) {
+        if (gexpSince === null) {
+            description.push("", "⚠️ No GEXP history has been saved yet, so the GEXP requirement can't be met.")
+        } else if (gexpSince > since) {
+            description.push("", `⚠️ GEXP has only been saved since <t:${gexpSince}:D>, which is shorter than the **${labels.time}** being checked.`)
+        }
+    }
+
+    const first = new EmbedBuilder()
+        .setColor(COLORS.guild)
+        .setTitle("📋 Activity Check")
+        .setDescription(description.join("\n"))
+
+    const fields = [
+        ...(active.length ? chunkItems(`✅ Active (${active.length})`, active.map(format)) : [{ name: "✅ Active (0)", value: "Nobody", inline: false }]),
+        ...(inactive.length ? chunkItems(`❌ Inactive (${inactive.length})`, inactive.map(format)) : [{ name: "❌ Inactive (0)", value: "Nobody", inline: false }]),
+        ...(exempt.length ? chunkItems(`🛡️ Exempt (${exempt.length})`, exempt.map(formatExempt), "\n") : [])
+    ]
+
+    const embeds = packMessages(first, fields, COLORS.guild)
+    const last = embeds[embeds.length - 1]
+    last.setTimestamp(Date.now())
+
+    const notes = []
+    if ([...active, ...inactive, ...exempt].some(e => e.isNew)) notes.push("🆕 joined the guild during this period")
+    if (capped) notes.push("Only 180 days of sessions are stored, so the time was capped at 6M")
+    if (notes.length) last.setFooter({ text: notes.join(" · ") })
+
+    return embeds.map(embed => ({ embeds: [embed] }))
+}
+
+function buildActivityDefaultsMessage(labels, { title, note } = {}) {
+    const rows = [
+        ["time", labels.time, "How far back to look"],
+        ["sessions", labels.sessions === null ? "off" : `${labels.sessions}`, "Sessions needed to be active"],
+        ["gexp", labels.gexp === null ? "off" : compact(labels.gexp), "GEXP needed in the period"],
+        ["playtime", labels.playtime ?? "off", "Credited playtime needed in the period"],
+        ["match", labels.match, "`any` = meet one requirement, `all` = meet every one"],
+        ["session_min_time", labels.minSessionTime, "Shortest session that counts"],
+        ["session_max_time", labels.maxSessionTime, "Most playtime one session can add"],
+        ["session_cooldown", labels.sessionCooldown, "Long sessions count again after this"],
+        ["merge_gap", labels.mergeGap, "Rejoins within this are one session (also used when saving joins/leaves)"]
+    ]
+
+    const embed = new EmbedBuilder()
+        .setColor(COLORS.guild)
+        .setTitle(title ?? "⚙️ Activity Check Defaults")
+        .setDescription(rows.map(([key, value, help]) => `\`${key}\` = **${value}** · ${help}`).join("\n"))
+        .setTimestamp(Date.now())
+
+    if (note) embed.setFooter({ text: note })
+
+    return { embeds: [embed] }
+}
+
+function buildExemptionListMessage(exemptions) {
+    const embed = new EmbedBuilder()
+        .setColor(COLORS.guild)
+        .setTitle(`🛡️ Activity Exemptions (${exemptions.length})`)
+        .setTimestamp(Date.now())
+
+    if (exemptions.length === 0) {
+        embed.setDescription("Nobody is exempt right now.")
+        return { embeds: [embed] }
+    }
+
+    const lines = exemptions.map(e =>
+        `**${escapeName(e.name)}** · ends <t:${e.until}:R> (<t:${e.until}:d>)${e.reason ? ` · ${e.reason}` : ""}${e.by ? ` · by ${e.by}` : ""}`
+    )
+    embed.addFields(...chunkItems("Exempt members", lines, "\n"))
+
+    return { embeds: [embed] }
+}
+
+module.exports = { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }

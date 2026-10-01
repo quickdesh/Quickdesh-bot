@@ -8,7 +8,7 @@ const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 const GuildManager = require("../guild/GuildManager.js")
-const { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage } = require("./MemberEmbeds")
+const { buildMemberInfoMessage, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -302,11 +302,128 @@ class DiscordManager extends CommunicationBridge {
         uuid: info.uuid,
         member: info.member,
         stats: info.stats,
+        rules: info.rules,
         thumbnail: this.app.config.discord.thumbnail
       }))
     } catch (err) {
       this.app.log.error(`Member info failed for ${username}: ${err.message}`)
       await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't load member info: ${err.message}` }] })
+    }
+  }
+
+  async activeList({ channel, args }){
+    this.app.log.broadcast('Activity Check ' + args.join(' '), 'Command')
+
+    try {
+      const report = await GuildManager.getActivityReport(this.app, args)
+
+      if (report.errors.length) {
+        const prefix = this.app.config.discord.prefix
+        await channel.send({ embeds: [{
+          color: 0xDC143C,
+          description: [
+            ...report.errors,
+            "",
+            `Usage: \`${prefix}activelist [time=2M] [sessions=20] [session_min_time=30m] [session_max_time=4h] [session_cooldown=12h] [merge_gap=10m] [gexp=50k] [playtime=40h] [match=any|all]\``,
+            "Units: `m` minutes, `h` hours, `d` days, `w` weeks, `M` months, `y` years"
+          ].join("\n")
+        }] })
+        return
+      }
+
+      for (const message of buildActivityListMessages(report)) {
+        await channel.send(message)
+      }
+    } catch (err) {
+      this.app.log.error(`Activity check failed: ${err.message}`)
+      await channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't run the activity check: ${err.message}` }] })
+    }
+  }
+
+  async activeConfig({ channel, args }){
+    this.app.log.broadcast('Activity Config ' + args.join(' '), 'Command')
+    const prefix = this.app.config.discord.prefix
+    const options = args.filter(Boolean)
+
+    if (options.length === 0 || options[0].toLowerCase() === "show") {
+      await channel.send(buildActivityDefaultsMessage(GuildManager.getActivityDefaults(), {
+        note: `Change with ${prefix}activeconfig sessions=20 time=2M · ${prefix}activeconfig reset`
+      }))
+      return
+    }
+
+    if (options[0].toLowerCase() === "reset") {
+      await channel.send(buildActivityDefaultsMessage(GuildManager.resetActivityDefaults(), {
+        title: "⚙️ Activity Check Defaults Reset",
+        note: "Back to the built-in defaults"
+      }))
+      return
+    }
+
+    const result = GuildManager.setActivityDefaults(options)
+    if (result.errors.length) {
+      await channel.send({ embeds: [{
+        color: 0xDC143C,
+        description: [
+          ...result.errors,
+          "",
+          `Usage: \`${prefix}activeconfig [time=2M] [sessions=20] [session_min_time=30m] [session_max_time=4h] [session_cooldown=12h] [merge_gap=10m] [gexp=50k] [playtime=40h] [match=any|all]\``,
+          `\`${prefix}activeconfig\` shows the current defaults, \`${prefix}activeconfig reset\` restores the built-in ones`
+        ].join("\n")
+      }] })
+      return
+    }
+
+    await channel.send(buildActivityDefaultsMessage(result.labels, {
+      title: "⚙️ Activity Check Defaults Updated",
+      note: `${prefix}activelist now uses these unless options are given`
+    }))
+  }
+
+  async exempt({ channel, args, author }){
+    this.app.log.broadcast('Exempt ' + args.join(' '), 'Command')
+    const prefix = this.app.config.discord.prefix
+    const [action, username, duration, ...reason] = args.filter(Boolean)
+    const usage = [
+      `\`${prefix}exempt add <ign> <duration> [reason]\` e.g. \`${prefix}exempt add Bob 2w on holiday\``,
+      `\`${prefix}exempt remove <ign>\``,
+      `\`${prefix}exempt list\``
+    ].join("\n")
+    const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
+
+    try {
+      switch ((action ?? "list").toLowerCase()) {
+        case "list":
+          await channel.send(buildExemptionListMessage(GuildManager.listExemptions()))
+          return
+
+        case "add": {
+          if (!username || !duration) return fail(usage)
+          const result = await GuildManager.addExemption(username, duration, reason.join(" "), author)
+          if (result.error) return fail(result.error)
+          await channel.send({ embeds: [{
+            color: 0x47F049,
+            description: `🛡️ **${result.name}** is exempt for **${result.duration}**, until <t:${result.exemption.until}:f> (<t:${result.exemption.until}:R>)${result.exemption.reason ? `\nReason: ${result.exemption.reason}` : ""}`
+          }] })
+          return
+        }
+
+        case "remove":
+        case "rm":
+        case "delete": {
+          if (!username) return fail(usage)
+          const result = await GuildManager.removeExemption(username)
+          if (!result.removed) return fail(`**${result.name}** isn't exempt.`)
+          await channel.send({ embeds: [{ color: 0x47F049, description: `🛡️ Removed **${result.name}**'s exemption.` }] })
+          return
+        }
+
+        default:
+          return fail(usage)
+      }
+    } catch (err) {
+      this.app.log.error(`Exempt failed: ${err.message}`)
+      await fail(`Couldn't update exemptions: ${err.message}`)
     }
   }
 
@@ -320,6 +437,7 @@ class DiscordManager extends CommunicationBridge {
         uuid: info.uuid,
         member: info.member,
         stats: info.stats,
+        rules: info.rules,
         thumbnail: this.app.config.discord.thumbnail,
         page
       }))
