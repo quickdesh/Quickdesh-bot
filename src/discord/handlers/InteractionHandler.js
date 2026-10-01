@@ -38,6 +38,14 @@ class InteractionHandler {
             }
 
             await butt.message.reply({ content: `${butt.user} ${action == "acceptjoinee" ? "accepted" : "rejected"} ${player}` })
+
+            if (action == "acceptjoinee") {
+                await this.discord.bannedPlayerAccepted({ channel: butt.message.channel, name: player, by: `${butt.user}` })
+            }
+        }
+
+        if (action == "bannedjoinee-unban" || action == "bannedjoinee-kick") {
+            return this.discord.bannedPlayerAction({ message: butt.message, action: action.split("-")[1], name: player, by: `${butt.user}` })
         }
     }
 

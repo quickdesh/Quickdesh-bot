@@ -7,7 +7,7 @@ const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
 const GuildManager = require("../guild/GuildManager.js")
-const { buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
+const { formatBan, buildBanListMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
 
 class DiscordManager extends CommunicationBridge {
   constructor(app) {
@@ -213,8 +213,9 @@ class DiscordManager extends CommunicationBridge {
     }
 
     const name = info?.name ?? username
+    const ban = info ? GuildManager.getBanByUuid(info.uuid) : null
     const acceptReject = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`acceptjoinee ${name}`).setLabel(`Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`acceptjoinee ${name}`).setLabel(ban ? `Accept anyway` : `Accept`).setEmoji({ name: "qyes", id: "933344650771697754" }).setStyle(ban ? ButtonStyle.Danger : ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`rejectjoinee ${name}`).setLabel(`Reject`).setEmoji({ name: "qnon", id: "933344718790750229" }).setStyle(ButtonStyle.Secondary)
     )
     const playerLinks = new ActionRowBuilder().addComponents(
@@ -223,9 +224,175 @@ class DiscordManager extends CommunicationBridge {
     )
 
     const requestEmbed = info ? { ...embed, description: `${embed.description}\n🆔 \`${info.uuid}\`` } : embed
+    if (ban) {
+      requestEmbed.color = 0xDA373C
+      requestEmbed.fields = [{ name: "⛔ This player is BANNED", value: formatBan(ban) }]
+    }
     const statEmbeds = info ? buildJoinRequestEmbeds(info) : []
     const profileRow = info ? buildJoinRequestProfileRow(info) : null
     await sent.edit({ embeds: [requestEmbed, ...statEmbeds], components: [acceptReject, ...(profileRow ? [profileRow] : []), playerLinks] })
+  }
+
+  async ban({ channel, args, author }){
+    this.app.log.broadcast('Ban ' + args.join(' '), 'Command')
+    const prefix = this.app.config.discord.prefix
+    const [username, ...reasonWords] = args.filter(Boolean)
+    const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
+
+    if (!username) return fail(`Usage: \`${prefix}ban <ign> [reason]\``)
+
+    try {
+      const result = await GuildManager.banPlayer(username, reasonWords.join(" "), author)
+      if (!result) return fail(`Couldn't find a player called **${username}**.`)
+
+      const kickReason = `Banned: ${result.ban.reason ?? "No reason given"}`.slice(0, 200)
+      const botOnline = this.app.minecraft.bot?.player !== undefined
+      if (botOnline) this.app.minecraft.bot.chat(`/g kick ${result.name} ${kickReason}`)
+
+      await channel.send({ embeds: [{
+        color: 0xDA373C,
+        title: `⛔ ${result.name} is banned`,
+        description: [
+          formatBan(result.ban),
+          `🆔 \`${result.uuid}\``,
+          "",
+          botOnline
+            ? `Kicked from the guild with: *${kickReason}*`
+            : `⚠️ The bot isn't online in Minecraft, so they weren't kicked. Kick them in-game or run \`${prefix}ban\` again once the bot is back.`,
+          ...(result.previous ? ["", `This replaced their earlier ban from <t:${result.previous.at}:d>${result.previous.reason ? ` (${result.previous.reason})` : ""}.`] : [])
+        ].join("\n")
+      }] })
+    } catch (err) {
+      this.app.log.error(`Ban failed for ${username}: ${err.message}`)
+      await fail(`Couldn't ban **${username}**: ${err.message}`)
+    }
+  }
+
+  async unban({ channel, args }){
+    this.app.log.broadcast('Unban ' + args.join(' '), 'Command')
+    const username = args.filter(Boolean)[0]
+    const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
+
+    if (!username) return fail(`Usage: \`${this.app.config.discord.prefix}unban <ign>\``)
+
+    try {
+      const result = await GuildManager.unbanPlayer(username)
+      if (!result.removed) return fail(`**${result.name}** isn't on the ban list.`)
+      await channel.send({ embeds: [{ color: 0x47F049, description: `✅ **${result.name}** is no longer banned. They were banned <t:${result.removed.at}:d> by ${result.removed.by ?? "Unknown"}${result.removed.reason ? ` for: ${result.removed.reason}` : ""}.` }] })
+    } catch (err) {
+      this.app.log.error(`Unban failed for ${username}: ${err.message}`)
+      await fail(`Couldn't unban **${username}**: ${err.message}`)
+    }
+  }
+
+  async banList({ channel }){
+    this.app.log.broadcast('Ban List', 'Command')
+    await channel.send(buildBanListMessage(GuildManager.listBans()))
+  }
+
+  async invite({ channel, args }){
+    const prefix = this.app.config.discord.prefix
+    const [username, flag] = args.filter(Boolean)
+    const force = flag?.toLowerCase() === "force"
+
+    if (!username) {
+      return channel.send({ embeds: [{ color: 0xDC143C, description: `Usage: \`${prefix}invite <ign> [force]\`` }] })
+    }
+
+    let banned = null
+    try {
+      banned = await GuildManager.checkBan(username)
+    } catch (err) {
+      this.app.log.error(`Ban check failed for ${username}: ${err.message}`)
+      if (!force) {
+        return channel.send({ embeds: [{ color: 0xDC143C, description: `Couldn't check the ban list for **${username}** (${err.message}), so they weren't invited. Use \`${prefix}invite ${username} force\` to invite anyway.` }] })
+      }
+    }
+
+    if (banned && !force) {
+      return channel.send({ embeds: [{
+        color: 0xDA373C,
+        title: `⛔ ${banned.name} is banned, so they weren't invited`,
+        description: `${formatBan(banned.ban)}\n\nTo invite them anyway: \`${prefix}invite ${banned.name} force\`\nTo remove the ban: \`${prefix}unban ${banned.name}\``
+      }] })
+    }
+
+    if (this.app.minecraft.bot?.player !== undefined) {
+      this.app.minecraft.bot.chat(`/g invite ${banned?.name ?? username}`)
+    }
+
+    if (banned) {
+      await channel.send({ embeds: [{ color: 0xF0B232, description: `⚠️ Invited **${banned.name}** even though they're banned (${banned.ban.reason ?? "no reason given"}).` }] })
+    }
+  }
+
+  async bannedPlayerAccepted({ channel, name, by }){
+    let banned = null
+    try {
+      banned = await GuildManager.checkBan(name)
+    } catch (err) {
+      this.app.log.error(`Ban check after accepting ${name} failed: ${err.message}`)
+    }
+    if (!banned) return
+
+    const actions = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`bannedjoinee-unban ${banned.name}`).setLabel("Unban").setEmoji("✅").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`bannedjoinee-kick ${banned.name}`).setLabel("Kick").setEmoji("👢").setStyle(ButtonStyle.Danger)
+    )
+
+    await channel.send({
+      embeds: [{
+        color: 0xF0B232,
+        title: `⚠️ Banned player accepted: ${banned.name}`,
+        description: [
+          `${by} accepted **${banned.name}** into the guild, but they're on the ban list.`,
+          "",
+          formatBan(banned.ban),
+          `🆔 \`${banned.uuid}\``,
+          "",
+          "**Unban** to let them stay, or **Kick** to remove them again."
+        ].join("\n")
+      }],
+      components: [actions]
+    })
+  }
+
+  async bannedPlayerAction({ message, action, name, by }){
+    let outcome
+    let done = true
+
+    try {
+      if (action === "unban") {
+        const result = await GuildManager.unbanPlayer(name)
+        outcome = result.removed ? `✅ Unbanned by ${by}` : `ℹ️ ${name} was already unbanned`
+      } else {
+        const banned = await GuildManager.checkBan(name)
+        const kickReason = `Banned: ${banned?.ban.reason ?? "No reason given"}`.slice(0, 200)
+        if (this.app.minecraft.bot?.player !== undefined) {
+          this.app.minecraft.bot.chat(`/g kick ${name} ${kickReason}`)
+          outcome = `👢 Kicked by ${by} with: *${kickReason}*`
+        } else {
+          outcome = `⚠️ ${by} tried to kick, but the bot isn't online in Minecraft. Try again once it's back.`
+          done = false
+        }
+      }
+    } catch (err) {
+      this.app.log.error(`Banned player ${action} failed for ${name}: ${err.message}`)
+      outcome = `⚠️ ${action === "unban" ? "Unban" : "Kick"} failed: ${err.message}`
+      done = false
+    }
+
+    const embed = EmbedBuilder.from(message.embeds[0])
+    const previous = embed.data.fields?.find(f => f.name === "Outcome")?.value
+    embed.setFields({ name: "Outcome", value: previous ? `${previous}\n${outcome}` : outcome })
+
+    const components = done
+      ? message.components.map(row => new ActionRowBuilder().addComponents(
+          row.components.map(button => ButtonBuilder.from(button).setDisabled(true))
+        ))
+      : message.components
+
+    await message.edit({ embeds: [embed], components })
   }
 
   async joinRequestProfile({ message, name, profileId }){
@@ -289,6 +456,7 @@ class DiscordManager extends CommunicationBridge {
         member: info.member,
         stats: info.stats,
         rules: info.rules,
+        ban: info.ban,
         thumbnail: this.app.config.discord.thumbnail
       }))
     } catch (err) {
@@ -424,6 +592,7 @@ class DiscordManager extends CommunicationBridge {
         member: info.member,
         stats: info.stats,
         rules: info.rules,
+        ban: info.ban,
         thumbnail: this.app.config.discord.thumbnail,
         page,
         profileId

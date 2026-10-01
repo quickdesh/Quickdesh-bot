@@ -4,6 +4,7 @@ const GuildSyncHandler = require("./handlers/GuildSyncHandler.js")
 const { getPlayerStats } = require("./handlers/HypixelStatsHandler.js")
 const ActivityCheckHandler = require("./handlers/ActivityCheckHandler.js")
 const ActivitySettingsHandler = require("./handlers/ActivitySettingsHandler.js")
+const BanListHandler = require("./handlers/BanListHandler.js")
 
 async function ensureUser(input) {
     const player =
@@ -89,7 +90,8 @@ async function getMemberInfo(app, username) {
         uuid,
         member: key ? data[key] : null,
         stats,
-        rules: ActivityCheckHandler.getSessionRules()
+        rules: ActivityCheckHandler.getSessionRules(),
+        ban: BanListHandler.getBan(uuid)
     }
 }
 
@@ -197,7 +199,57 @@ function listExemptions() {
         .sort((a, b) => a.until - b.until)
 }
 
+async function banPlayer(username, reason, by) {
+    const player = await resolvePlayer(username)
+    if (!player) return null
+
+    const previous = BanListHandler.getBan(player.uuid)
+    const ban = { name: player.name, reason: reason || null, by, at: Math.floor(Date.now() / 1000) }
+    BanListHandler.addBan(player.uuid, ban)
+
+    return { ...player, ban, previous }
+}
+
+async function unbanPlayer(username) {
+    const bans = BanListHandler.listBans()
+    const lower = username.toLowerCase()
+    let uuid = Object.keys(bans).find(u => bans[u].name.toLowerCase() === lower)
+
+    if (!uuid) {
+        const player = await resolvePlayer(username)
+        uuid = player?.uuid
+    }
+
+    const removed = uuid ? BanListHandler.removeBan(uuid) : null
+    return { name: removed?.name ?? username, removed }
+}
+
+async function checkBan(username) {
+    const player = await resolvePlayer(username)
+    if (!player) return null
+    const ban = BanListHandler.getBan(player.uuid)
+    return ban ? { ...player, ban } : null
+}
+
+function getBanByUuid(uuid) {
+    return BanListHandler.getBan(uuid)
+}
+
+function listBans() {
+    const data = UuidAndRanksHandler.loadExisting()
+    const nameByUuid = new Map(Object.entries(data).filter(([, r]) => r?.uuid).map(([k, r]) => [r.uuid, k]))
+
+    return Object.entries(BanListHandler.listBans())
+        .map(([uuid, ban]) => ({ ...ban, uuid, name: nameByUuid.get(uuid) ?? ban.name }))
+        .sort((a, b) => b.at - a.at)
+}
+
 module.exports = {
+    banPlayer,
+    unbanPlayer,
+    checkBan,
+    getBanByUuid,
+    listBans,
     startGuildSync,
     getActivityReport,
     getActivityDefaults,

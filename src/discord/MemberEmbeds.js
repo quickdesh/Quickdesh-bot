@@ -254,7 +254,7 @@ function dungeonRunsBlock(d) {
     ))
 }
 
-function memberEmbed({ name, uuid, member, stats, thumbnail }) {
+function memberEmbed({ name, uuid, member, stats, thumbnail, ban }) {
     const sessions = Array.isArray(member?.last_sessions) ? member.last_sessions : []
     const hypixelRank = member?.hypixel_rank && member.hypixel_rank !== "Non" ? `[${member.hypixel_rank}] ` : ""
 
@@ -273,6 +273,10 @@ function memberEmbed({ name, uuid, member, stats, thumbnail }) {
             { name: "📅 Joined", value: joined, inline: true }
         )
         .addFields(...statusFields(sessions))
+
+    if (ban) {
+        embed.addFields({ name: "⛔ Banned", value: formatBan(ban), inline: false })
+    }
 
     if (Array.isArray(member?.["Old names"]) && member["Old names"].length) {
         embed.addFields({ name: "📛 Previous Names", value: member["Old names"].join(", ").slice(0, 1024), inline: false })
@@ -385,11 +389,11 @@ function pickProfile(stats, profileId = null) {
     }
 }
 
-function buildMemberInfoMessage({ name, uuid, member, stats: rawStats, thumbnail, rules = getSessionRules(), page = "member", profileId = null }) {
+function buildMemberInfoMessage({ name, uuid, member, stats: rawStats, thumbnail, rules = getSessionRules(), page = "member", profileId = null, ban = null }) {
     const profiles = rawStats?.profiles ?? []
     const { stats, profile } = pickProfile(rawStats, profileId)
 
-    const pages = { member: memberEmbed({ name, uuid, member, stats, thumbnail }) }
+    const pages = { member: memberEmbed({ name, uuid, member, stats, thumbnail, ban }) }
 
     const activity = activityEmbed({ member, stats, rules })
     if (activity) pages.activity = activity
@@ -448,6 +452,33 @@ function buildJoinRequestProfileRow({ name, stats }, profileId = null) {
     if (profiles.length < 2) return null
     const { profile } = pickProfile(stats, profileId)
     return profileSelect(`joinreq-profile:${name}`, profiles, profile.id)
+}
+
+function formatBan(ban) {
+    return [
+        `**Reason:** ${ban.reason ?? "No reason given"}`,
+        `**Banned:** <t:${ban.at}:f> (<t:${ban.at}:R>)`,
+        `**By:** ${ban.by ?? "Unknown"}`
+    ].join("\n")
+}
+
+function buildBanListMessage(bans) {
+    const embed = new EmbedBuilder()
+        .setColor(COLORS.inactive)
+        .setTitle(`⛔ Ban List (${bans.length})`)
+        .setTimestamp(Date.now())
+
+    if (bans.length === 0) {
+        embed.setDescription("Nobody is banned.")
+        return { embeds: [embed] }
+    }
+
+    const lines = bans.map(b =>
+        `**${escapeName(b.name)}** · <t:${b.at}:d> · by ${b.by ?? "Unknown"}${b.reason ? ` · ${b.reason}` : ""}`
+    )
+    embed.addFields(...chunkItems("Banned players (newest first)", lines, "\n"))
+
+    return { embeds: [embed] }
 }
 
 function buildGuildListMessage(guild, { thumbnail, lobbyHolder }) {
@@ -695,4 +726,4 @@ function buildExemptionListMessage(exemptions) {
     return { embeds: [embed] }
 }
 
-module.exports = { buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }
+module.exports = { formatBan, buildBanListMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage, loadMemberData }

@@ -6,15 +6,29 @@ class InviteCommand extends DiscordCommand {
 
 		this.name = 'invite'
 		this.aliases = ['i', 'inv']
-		this.description = 'Invites the given user to the guild'
+		this.description = 'Invites the given user to the guild (checks the ban list first)'
 		this.isAdminCommand = true
 	}
 
-	onCommand(message) {
-		let args = this.getArgs(message)
-		let user = args.shift()
+	help(prefix) {
+		return {
+			usage: `${prefix}invite <ign> [force]`,
+			sections: [
+				{
+					name: 'Details',
+					lines: [
+						'Invites the player to the guild through the bot',
+						'Checks the ban list first: banned players are not invited, and you see why, when and by who',
+						'Add `force` to invite a banned player anyway'
+					]
+				}
+			],
+			examples: [`${prefix}invite Bob`, `${prefix}invite Bob force`]
+		}
+	}
 
-		this.sendMinecraftMessage(`/g invite ${user ? user : ''}`)
+	onCommand(message) {
+		this.discord.invite({ channel: message.channel, args: this.getArgs(message) })
 	}
 }
 

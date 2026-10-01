@@ -171,6 +171,22 @@ class StateHandler extends EventHandler {
 				.trim()
 
 			GuildManager.playerGuildNew(message)
+
+			GuildManager.checkBan(user).then(banned => {
+				if (!banned) return
+				this.minecraft.broadcastHeadedEmbed({
+					message: [
+						`**${banned.name}** just joined the guild but is on the ban list!`,
+						`**Reason:** ${banned.ban.reason ?? "No reason given"}`,
+						`**Banned:** <t:${banned.ban.at}:f> by ${banned.ban.by ?? "Unknown"}`,
+						`Use \`${this.minecraft.app.config.discord.prefix}ban ${banned.name}\` to kick them again.`
+					].join("\n"),
+					title: `⛔ Banned player joined`,
+					icon: `https://mc-heads.net/head/${banned.name}`,
+					color: 0xDA373C,
+					chatType: 'oc',
+				})
+			}).catch(err => console.warn(`Ban check failed for ${user}: ${err.message}`))
 			
 			return this.minecraft.broadcastHeadedEmbed({
 				message: `${user} joined the guild!`,
