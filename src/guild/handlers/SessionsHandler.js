@@ -1,10 +1,13 @@
 const fs = require("fs")
-const { syncUUIDs } = require("./UuidAndRanksHandler.js")
+const { syncUuidAndRanks, findKey } = require("./UuidAndRanksHandler.js")
 
 const FILE_PATH = "./AspectOfTheEgg.json"
 
-const TEN_MINUTES = 300
-const SIXTY_DAYS = 60 * 24 * 60 * 60
+const TEN_MINUTES = 600
+const ONE_HUNDRED_EIGHTY_DAYS = 180 * 24 * 60 * 60
+
+const UUID_RECHECK_MS = 5 * 60 * 1000
+const lastUuidCheck = new Map()
 
 function load() {
     if (!fs.existsSync(FILE_PATH)) return {}
@@ -12,47 +15,51 @@ function load() {
 }
 
 function save(data) {
-    fs.writeFileSync(FILE_PATH, JSON.stringify(data, null, 2))
+    fs.writeFileSync(FILE_PATH + ".tmp", JSON.stringify(data, null, 2))
+    fs.renameSync(FILE_PATH + ".tmp", FILE_PATH)
 }
 
 async function ensureUserExists(username) {
 
-    let data = load()
+    const lower = String(username).toLowerCase()
+    const lastCheck = lastUuidCheck.get(lower)
 
-    if (data[username]) return data
+    if (lastCheck === undefined || Date.now() - lastCheck >= UUID_RECHECK_MS) {
+        const confirmed = await syncUuidAndRanks([username])
+        if (confirmed.has(lower)) lastUuidCheck.set(lower, Date.now())
+    }
 
-    console.log(`User ${username} not found. Syncing UUID...`)
+    const data = load()
+    const key = findKey(data, username)
 
-    await syncUUIDs([username])
-
-    data = load()
-
-    if (!data[username]) {
+    if (!key) {
         console.warn(`Failed to sync UUID for ${username}`)
         return null
     }
 
-    return data
+    return { data, key }
 }
 
 function cleanupOldSessions(sessions, currentUnix) {
-    const cutoff = currentUnix - SIXTY_DAYS
+    const cutoff = currentUnix - ONE_HUNDRED_EIGHTY_DAYS
     return sessions.filter(s => s.join >= cutoff)
 }
 
 async function recordJoin(username, unixTime) {
 
-    let data = await ensureUserExists(username)
-    if (!data) return
+    const user = await ensureUserExists(username)
+    if (!user) return
 
-    if (!Array.isArray(data[username].last_sessions)) {
-        data[username].last_sessions = []
+    const { data, key } = user
+
+    if (!Array.isArray(data[key].last_sessions)) {
+        data[key].last_sessions = []
     }
 
-    data[username].last_sessions =
-        cleanupOldSessions(data[username].last_sessions, unixTime)
+    data[key].last_sessions =
+        cleanupOldSessions(data[key].last_sessions, unixTime)
 
-    const sessions = data[username].last_sessions
+    const sessions = data[key].last_sessions
     const last = sessions[sessions.length - 1]
 
     if (last) {
@@ -79,14 +86,16 @@ async function recordJoin(username, unixTime) {
 
 async function recordLeave(username, unixTime) {
 
-    let data = await ensureUserExists(username)
-    if (!data) return
+    const user = await ensureUserExists(username)
+    if (!user) return
 
-    if (!Array.isArray(data[username].last_sessions)) {
-        data[username].last_sessions = []
+    const { data, key } = user
+
+    if (!Array.isArray(data[key].last_sessions)) {
+        data[key].last_sessions = []
     }
 
-    const sessions = data[username].last_sessions
+    const sessions = data[key].last_sessions
 
     if (sessions.length === 0) {
         save(data)
