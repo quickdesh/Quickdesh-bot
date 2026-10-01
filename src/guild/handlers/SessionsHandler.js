@@ -15,7 +15,11 @@ function load() {
 }
 
 function save(data) {
-    fs.writeFileSync(FILE_PATH + ".tmp", JSON.stringify(data, null, 2))
+    const json = JSON.stringify(data, null, 2).replace(
+        /"last_sessions": (\[[^\]]*\])/g,
+        (_, sessions) => `"last_sessions": ${JSON.stringify(JSON.parse(sessions))}`
+    )
+    fs.writeFileSync(FILE_PATH + ".tmp", json)
     fs.renameSync(FILE_PATH + ".tmp", FILE_PATH)
 }
 
@@ -52,12 +56,18 @@ async function recordJoin(username, unixTime) {
 
     const { data, key } = user
 
-    if (!Array.isArray(data[key].last_sessions)) {
-        data[key].last_sessions = []
-    }
+    data[key].last_join = new Date(unixTime * 1000)
+        .toISOString()
+        .replace("T", " ")
+        .replace(/\.\d+Z$/, " UTC")
 
+    const previousSessions = Array.isArray(data[key].last_sessions)
+        ? data[key].last_sessions
+        : []
+
+    delete data[key].last_sessions
     data[key].last_sessions =
-        cleanupOldSessions(data[key].last_sessions, unixTime)
+        cleanupOldSessions(previousSessions, unixTime)
 
     const sessions = data[key].last_sessions
     const last = sessions[sessions.length - 1]

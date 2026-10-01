@@ -15,7 +15,11 @@ function loadExisting() {
 }
 
 function save(data) {
-    fs.writeFileSync(FILE_PATH + ".tmp", JSON.stringify(data, null, 2))
+    const json = JSON.stringify(data, null, 2).replace(
+        /"last_sessions": (\[[^\]]*\])/g,
+        (_, sessions) => `"last_sessions": ${JSON.stringify(JSON.parse(sessions))}`
+    )
+    fs.writeFileSync(FILE_PATH + ".tmp", json)
     fs.renameSync(FILE_PATH + ".tmp", FILE_PATH)
 }
 
