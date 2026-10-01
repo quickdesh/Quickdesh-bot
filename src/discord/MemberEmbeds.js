@@ -466,10 +466,6 @@ function formatHours(seconds) {
     return hours > 0 ? `${hours}h` : `${Math.floor(seconds / 60)}m`
 }
 
-function activityStats(entry) {
-    return `${entry.count} · ${formatHours(entry.playtime)} · ${compact(entry.gexp)}`
-}
-
 function packMessages(first, fields, color) {
     const messages = [first]
     let current = first
@@ -497,10 +493,34 @@ function requirementText(labels) {
     return parts.join(labels.match === "all" ? " **and** " : " **or** ")
 }
 
+const TABLE = {
+    header: `${C.bold}${"Name".padEnd(16)} \u001b[1;34m${"Sess".padStart(4)} \u001b[1;33m${"Time".padStart(6)} \u001b[1;32m${"GEXP".padStart(7)}${C.reset}`,
+    row: entry => `${C.label}${entry.name.padEnd(16)} ${C.blue}${String(entry.count).padStart(4)} ${C.yellow}${formatHours(entry.playtime).padStart(6)} ${C.green}${compact(entry.gexp).padStart(7)}${entry.isNew ? `${C.pink} new` : ""}${C.reset}`
+}
+
+function activityTable(title, entries) {
+    if (entries.length === 0) return [{ name: title, value: "Nobody", inline: false }]
+
+    const wrap = rows => `\`\`\`ansi\n${TABLE.header}\n${rows.join("\n")}\n\`\`\``
+    const fields = []
+    let rows = []
+
+    for (const entry of entries) {
+        const row = TABLE.row(entry)
+        if (rows.length && wrap([...rows, row]).length > 1024) {
+            fields.push(rows)
+            rows = []
+        }
+        rows.push(row)
+    }
+    if (rows.length) fields.push(rows)
+
+    return fields.map((group, i) => ({ name: i === 0 ? title : "\u200b", value: wrap(group), inline: false }))
+}
+
 function buildActivityListMessages({ active, inactive, exempt, labels, capped, trackingSince, gexpSince, since }) {
-    const format = entry => `${escapeName(entry.name)} (${activityStats(entry)})${entry.isNew ? " 🆕" : ""} ●`
     const formatExempt = entry =>
-        `**${escapeName(entry.name)}** (${activityStats(entry)}) · ends <t:${entry.exemption.until}:R>${entry.exemption.reason ? ` · ${entry.exemption.reason}` : ""}`
+        `**${escapeName(entry.name)}** · ends <t:${entry.exemption.until}:R>${entry.exemption.reason ? ` · ${entry.exemption.reason}` : ""}${entry.exemption.by ? ` · by ${entry.exemption.by}` : ""}`
 
     const description = [
         `Sessions in the last **${labels.time}** that lasted at least **${labels.minSessionTime}**`,
@@ -510,7 +530,7 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
         `Active = ${requirementText(labels)}`,
         "",
         `✅ **${active.length}** active · ❌ **${inactive.length}** inactive · 🛡️ **${exempt.length}** exempt`,
-        "Shown as **(sessions · playtime · GEXP)**"
+        "Columns: **Sess** = sessions · **Time** = credited playtime · **GEXP** = guild exp in the period"
     ]
 
     if (trackingSince === null) {
@@ -533,9 +553,12 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
         .setDescription(description.join("\n"))
 
     const fields = [
-        ...(active.length ? chunkItems(`✅ Active (${active.length})`, active.map(format)) : [{ name: "✅ Active (0)", value: "Nobody", inline: false }]),
-        ...(inactive.length ? chunkItems(`❌ Inactive (${inactive.length})`, inactive.map(format)) : [{ name: "❌ Inactive (0)", value: "Nobody", inline: false }]),
-        ...(exempt.length ? chunkItems(`🛡️ Exempt (${exempt.length})`, exempt.map(formatExempt), "\n") : [])
+        ...activityTable(`✅ Active (${active.length})`, active),
+        ...activityTable(`❌ Inactive (${inactive.length})`, inactive),
+        ...(exempt.length ? [
+            ...activityTable(`🛡️ Exempt (${exempt.length})`, exempt),
+            ...chunkItems("🛡️ Exemption details", exempt.map(formatExempt), "\n")
+        ] : [])
     ]
 
     const embeds = packMessages(first, fields, COLORS.guild)
@@ -543,7 +566,7 @@ function buildActivityListMessages({ active, inactive, exempt, labels, capped, t
     last.setTimestamp(Date.now())
 
     const notes = []
-    if ([...active, ...inactive, ...exempt].some(e => e.isNew)) notes.push("🆕 joined the guild during this period")
+    if ([...active, ...inactive, ...exempt].some(e => e.isNew)) notes.push("new = joined the guild during this period")
     if (capped) notes.push("Only 180 days of sessions are stored, so the time was capped at 6M")
     if (notes.length) last.setFooter({ text: notes.join(" · ") })
 

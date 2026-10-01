@@ -64,10 +64,12 @@ class HelpCommand extends DiscordCommand {
       return
     }
 
-    const lines = [...commands.values()].map(command => {
+    const line = command => {
       const aliases = command.aliases?.length ? ` (${command.aliases.map(a => `\`${a}\``).join(', ')})` : ''
-      return `${command.isAdminCommand ? '🔒 ' : ''}\`${prefix}${command.name}\`${aliases}: ${command.description}`
-    })
+      return `\`${prefix}${command.name}\`${aliases}: ${command.description}`
+    }
+    const everyone = [...commands.values()].filter(command => !command.isAdminCommand).map(line)
+    const commanders = [...commands.values()].filter(command => command.isAdminCommand).map(line)
 
     message.channel.send({
       embeds: [
@@ -76,12 +78,12 @@ class HelpCommand extends DiscordCommand {
           description: [
             '`< >` = Required arguments',
             '`[ ]` = Optional arguments',
-            '🔒 = Commanders only',
             '',
             `Type \`${prefix}help <command>\` for full details, options and examples.`
           ].join('\n'),
           fields: [
-            ...chunkLines('Discord Commands', lines),
+            ...chunkLines('Commands', everyone),
+            ...(commanders.length ? chunkLines('Commander Commands', commanders) : []),
             {
               name: `Info`,
               value: [
@@ -112,7 +114,7 @@ class HelpCommand extends DiscordCommand {
       fields.push({ name: 'Aliases', value: command.aliases.map(a => `\`${prefix}${a}\``).join(', '), inline: true })
     }
 
-    fields.push({ name: 'Who can use it', value: command.isAdminCommand ? '🔒 Commanders and the owner' : 'Everyone', inline: true })
+    fields.push({ name: 'Who can use it', value: command.isAdminCommand ? 'Commanders and the owner' : 'Everyone', inline: true })
 
     for (const section of help?.sections ?? []) {
       fields.push(...chunkLines(section.name, section.lines))
