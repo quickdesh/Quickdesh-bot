@@ -423,6 +423,14 @@ class StateHandler extends EventHandler {
 			return this.minecraft.broadcastCleanEmbed({ message: `Player \`${user}\` not found.`, color: 0xDC143C })
 		}
 		
+		if (this.isWhisperFailure(message)) {
+			const last = this.minecraft.lastWhisper
+			if (last && Date.now() - last.at < 10000) {
+				this.minecraft.lastWhisper = null
+				return this.minecraft.app.discord.dmNotice(last.name, `⚠️ Your message to **${last.name}** wasn't delivered: ${message}`)
+			}
+		}
+
 		if (!this.isGuildMessage(message) && !this.isOfficerMessage(message) && !this.isDM(message)) {
 			return
 		}
@@ -460,14 +468,7 @@ class StateHandler extends EventHandler {
 				chatType: chattype,
 			})}
 		else {
-			let username=message
-				.split(": ")[0]
-				.replace("From ","")
-				.replace("To ","")
-				.replace(/\[(.*?)\]/g, '')
-				.trim()
-				.split(' ')[0]
-			let playerMessage=message.split(": ")[1]
+			const [, username, playerMessage] = /^From (?:\[[^\]]+\] )?(\w{1,16}): (.*)$/.exec(message)
 			let guildRank=""
 			let chattype="dm"
 			
@@ -503,7 +504,11 @@ class StateHandler extends EventHandler {
 	}
 
 	isDM(message){
-		return message.includes('From')
+		return /^From (?:\[[^\]]+\] )?\w{1,16}: /.test(message)
+	}
+
+	isWhisperFailure(message) {
+		return message == 'That player is not online!' || message.startsWith('You cannot message this player')
 	}
 
 	isFriend(message) {

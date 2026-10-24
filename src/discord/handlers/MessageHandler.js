@@ -48,6 +48,10 @@ class MessageHandler {
 		if ((content.length == 0) && (!message.attachments.size > 0)){
 			return
 		}
+
+		if (message.channel.parentId == this.discord.app.config.discord.dmchannel) {
+			this.discord.app.minecraft.lastWhisper = { name: message.channel.name, at: Date.now() }
+		}
 	
 		this.discord.broadcastMessage({
 			username: message.member.displayName,
@@ -123,14 +127,9 @@ class MessageHandler {
 
 
 	async stripDiscordContent(message, reply = false) {
-		var new_cont_arr=message.content.split("\n")
-		var new_content
-		if (new_cont_arr.length==3){
-			new_content = new_cont_arr[2]
-		}
-		else{
-			new_content = new_cont_arr[0]
-		}
+		var new_cont_arr=message.content.split("\n").map(line => line.trim()).filter(line => line.length > 0)
+		var unquoted = new_cont_arr.filter(line => !line.startsWith(">"))
+		var new_content = (unquoted.length > 0 ? unquoted : new_cont_arr.map(line => line.replace(/^>+\s*/, ""))).join(" ")
 		var word = new_content.split(" ")
 
 		new_content =""

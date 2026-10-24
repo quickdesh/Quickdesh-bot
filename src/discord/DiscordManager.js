@@ -6,9 +6,26 @@ const CommandHandler = require('./CommandHandler')
 const Discord = require('discord.js')
 const { EmbedBuilder, ButtonStyle, ButtonBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js')
 const EmbedHandler = require('./EmbedHandler')
+const fs = require('fs')
 
 const DETAILS_AUTO_HIDE_MS = 5 * 60 * 1000
 const detailTimers = new Map()
+
+const DM_THREADS_PATH = './DmThreads.json'
+const dmThreadLookups = new Map()
+
+function loadDmThreads() {
+  try {
+    return JSON.parse(fs.readFileSync(DM_THREADS_PATH, 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
+function saveDmThreads(threads) {
+  fs.writeFileSync(DM_THREADS_PATH + '.tmp', JSON.stringify(threads, null, 2))
+  fs.renameSync(DM_THREADS_PATH + '.tmp', DM_THREADS_PATH)
+}
 const GuildManager = require("../guild/GuildManager.js")
 const { formatBan, formatFormerBan, latestFormerBan, buildBanListMessage, buildBanRecordMessage, buildMemberInfoMessage, buildJoinRequestEmbeds, buildJoinRequestProfileRow, buildGuildListMessage, buildGuildOnlineMessage, buildActivityListMessages, buildActivityDefaultsMessage, buildExemptionListMessage } = require("./MemberEmbeds")
 
@@ -67,6 +84,10 @@ class DiscordManager extends CommunicationBridge {
   }
 
   async onBroadcast({ username, message, guildRank, chatType }) {
+
+    if (chatType == "dm") {
+      return this.dmBroadcast({ username, message })
+    }
     
     var channelType=''
     if (chatType == "Guild"){
@@ -120,43 +141,76 @@ class DiscordManager extends CommunicationBridge {
             avatarURL: await `https://www.mc-heads.net/head/${username.replace(" ","")}`
           })
         }
-        else if (chatType=="dm"){
-          this.app.log.broadcast(`${username}: ${message}`, `DM`)
-          this.app.discord.client.channels.fetch(this.app.config.discord.dmchannel).then(async dmchannel => {
-            var thread = dmchannel.threads.cache.find(x => x.name == `${username}`)
-
-              if(thread !== undefined){
-
-                this.app.discord.dmwebhook.send({
-                  content: message,
-                  username: username,
-                  avatarURL: await `https://www.mc-heads.net/head/${username.replace(" ","")}`,
-                  threadId: thread.id
-                })
-
-              }
-
-              else{
-                dmchannel.threads.create({
-                  name: `${username}`,
-                  autoArchiveDuration: 60,
-                  reason: `A thread for Dms with ${username}`,
-                }).then( async thread => {
-
-                  this.app.discord.dmwebhook.send({
-                    content: message,
-                    username: username,
-                    avatarURL: await `https://www.mc-heads.net/head/${username.replace(" ","")}`,
-                    threadId: thread.id
-                  })
-                })
-              } 
-          })
-        }
         break
 
       default:
         throw new Error('Invalid message mode: must be bot or webhook')
+    }
+  }
+
+  getDmThread(username) {
+    const key = username.toLowerCase()
+    if (!dmThreadLookups.has(key)) {
+      dmThreadLookups.set(key, this.findOrCreateDmThread(username).finally(() => dmThreadLookups.delete(key)))
+    }
+    return dmThreadLookups.get(key)
+  }
+
+  async findOrCreateDmThread(username) {
+    const key = username.toLowerCase()
+    const dmchannel = await this.client.channels.fetch(this.app.config.discord.dmchannel)
+    const saved = loadDmThreads()
+    const sameName = thread => thread.name.toLowerCase() == key
+
+    let thread = null
+    if (saved[key]) {
+      thread = await this.client.channels.fetch(saved[key]).catch(() => null)
+      if (thread?.parentId != dmchannel.id) thread = null
+    }
+
+    thread = thread
+      ?? dmchannel.threads.cache.find(sameName)
+      ?? (await dmchannel.threads.fetchActive().catch(() => null))?.threads.find(sameName)
+      ?? (await dmchannel.threads.fetchArchived({ limit: 100 }).catch(() => null))?.threads.find(sameName)
+      ?? await dmchannel.threads.create({
+        name: username,
+        autoArchiveDuration: 60,
+        reason: `A thread for Dms with ${username}`,
+      })
+
+    if (thread.archived) await thread.setArchived(false).catch(() => {})
+
+    if (saved[key] != thread.id) {
+      saved[key] = thread.id
+      saveDmThreads(saved)
+    }
+
+    return thread
+  }
+
+  async dmBroadcast({ username, message }) {
+    this.app.log.broadcast(`${username}: ${message}`, `DM`)
+    const avatarURL = `https://www.mc-heads.net/head/${username}`
+
+    try {
+      const thread = await this.getDmThread(username)
+
+      if (this.app.config.discord.messageMode.toLowerCase() == 'webhook' && this.dmwebhook) {
+        await this.dmwebhook.send({ content: message.replace(/@/g, ''), username, avatarURL, threadId: thread.id })
+      } else {
+        await thread.send({ embeds: [{ description: message, color: 0x6495ED, timestamp: new Date(), author: { name: username, icon_url: avatarURL } }] })
+      }
+    } catch (err) {
+      this.app.log.error(`Couldn't post the DM from ${username} to Discord: ${err.message}`)
+    }
+  }
+
+  async dmNotice(username, text) {
+    try {
+      const thread = await this.getDmThread(username)
+      await thread.send({ embeds: [{ color: 0xDC143C, description: text }] })
+    } catch (err) {
+      this.app.log.error(`Couldn't post a DM notice for ${username}: ${err.message}`)
     }
   }
 
