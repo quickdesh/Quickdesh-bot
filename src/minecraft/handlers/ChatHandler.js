@@ -309,11 +309,11 @@ class StateHandler extends EventHandler {
 			const matches = message.match(/"[^"]*?: ([^"]+)"/);
 			const blockedMsg = matches ? matches[1] : null;
 
-			return this.minecraft.broadcastCleanEmbed({ message: `Message \`${blockedMsg}\` was blocked by Hypixel.`, color: 0xDC143C })
+			return this.chatError(`Message \`${blockedMsg}\` was blocked by Hypixel.`)
 		}
 
 		if (this.isRepeatMessage(message)) {
-			return this.minecraft.broadcastCleanEmbed({ message: `You cannot say the same message twice!`, color: 0xDC143C })
+			return this.chatError(`You cannot say the same message twice!`)
 		}
 
 		if (this.isNoPermission(message)) {
@@ -414,20 +414,21 @@ class StateHandler extends EventHandler {
 		}
 
 		if (this.isTooFast(message)) {
-			return this.minecraft.app.log.warn(message)
+			this.minecraft.app.log.warn(message)
+			if (this.minecraft.recentChatTarget()) return this.chatError(`Hypixel says the bot is sending too fast, so that message may not have gone through.`)
+			return
 		}
 
 		if (this.isPlayerNotFound(message)) {
 			let user = message.split(' ')[8].slice(1, -1)
 
-			return this.minecraft.broadcastCleanEmbed({ message: `Player \`${user}\` not found.`, color: 0xDC143C })
+			return this.chatError(`Player \`${user}\` not found.`)
 		}
 		
 		if (this.isWhisperFailure(message)) {
-			const last = this.minecraft.lastWhisper
-			if (last && Date.now() - last.at < 10000) {
-				this.minecraft.lastWhisper = null
-				return this.minecraft.app.discord.dmNotice(last.name, `⚠️ Your message to **${last.name}** wasn't delivered: ${message}`)
+			const target = this.minecraft.recentChatTarget()
+			if (target?.dm) {
+				return this.chatError(`Your message to **${target.dm}** wasn't delivered: ${message}`)
 			}
 		}
 
@@ -587,6 +588,10 @@ class StateHandler extends EventHandler {
 	}
 	isBlockedMessage(message) {
 		return message.includes('We blocked your comment \"')
+	}
+
+	chatError(text) {
+		return this.minecraft.broadcastChatError({ message: text, color: 0xDC143C, target: this.minecraft.recentChatTarget() })
 	}
 
 	isRepeatMessage(message) {

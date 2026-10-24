@@ -36,6 +36,10 @@ class CommunicationBridge {
 		return this.bridge.onBroadcastHeadedEmbed(event)
 	}
 
+	broadcastChatError(event) {
+		return this.bridge.onBroadcastChatError(event)
+	}
+
 	connect() {
 		throw new Error('Communication bridge connection is not implemented yet!')
 	}

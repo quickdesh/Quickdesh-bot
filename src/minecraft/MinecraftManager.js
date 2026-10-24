@@ -8,6 +8,7 @@ const Discord = require('discord.js')
 var a=0
 
 const CHAT_DELAY_MS = 600
+const CHAT_ERROR_WINDOW_MS = 2000
 
 function splitChat(header, text, nextHeader = header, limit = 256) {
 	const lines = []
@@ -30,6 +31,14 @@ function splitChat(header, text, nextHeader = header, limit = 256) {
 	}
 
 	return lines
+}
+
+function chatTarget(line) {
+	const dm = /^\/(?:w|msg|tell|whisper|message)\s+(\w{1,16})\s/i.exec(line)
+	if (dm) return { dm: dm[1] }
+	if (/^\/(?:gc|gchat|g chat)\s/i.test(line)) return 'guild'
+	if (/^\/(?:oc|ochat|g officer)\s/i.test(line)) return 'officer'
+	return null
 }
 
 function chatHeader(line) {
@@ -354,12 +363,19 @@ class MinecraftManager extends CommunicationBridge {
 		this.chatQueue = (this.chatQueue ?? Promise.resolve()).then(async () => {
 			for (const line of lines) {
 				if (this.bot?.player === undefined) return
+				this.lastSent = { target: chatTarget(line), at: Date.now() }
 				this.bot.chat(line)
 				await new Promise(resolve => setTimeout(resolve, CHAT_DELAY_MS))
 			}
 		}).catch(err => this.app.log.error(`Sending to Minecraft chat failed: ${err.message}`))
 
 		return this.chatQueue
+	}
+
+	recentChatTarget() {
+		if (this.lastSent && Date.now() - this.lastSent.at < CHAT_ERROR_WINDOW_MS) return this.lastSent.target
+		if (this.lastWhisper && Date.now() - this.lastWhisper.at < CHAT_ERROR_WINDOW_MS) return { dm: this.lastWhisper.name }
+		return null
 	}
 
 	sendChatLine(line) {
@@ -435,18 +451,18 @@ class MinecraftManager extends CommunicationBridge {
 		else if(chatType=="message"){
 			if ((this.bot.player !== undefined) && (Attachmsg == undefined)) {
 
-				this.app.log.broadcast(`To ${replyingTo}: ${message}`, 'DM')
+				this.app.log.broadcast(`${username} to ${replyingTo}: ${message}`, 'DM')
 		
-				this.sendChat(`/w ${replyingTo} `, message)
+				this.sendChat(`/w ${replyingTo} ${username}: `, message)
 	
 			}
 			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 		
 				if(message!=="") {
-				this.sendChat(`/w ${replyingTo} `, message)
+				this.sendChat(`/w ${replyingTo} ${username}: `, message)
 			}
-				this.sendChat(`/w ${replyingTo} `, Attachmsg)
-				this.app.log.broadcast(`Sent an attachment to ${replyingTo}`, 'DM')
+				this.sendChat(`/w ${replyingTo} ${username}: `, Attachmsg)
+				this.app.log.broadcast(`${username} sent an attachment to ${replyingTo}`, 'DM')
 			}
 		}
 	}

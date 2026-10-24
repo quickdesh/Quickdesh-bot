@@ -205,6 +205,58 @@ class DiscordManager extends CommunicationBridge {
     }
   }
 
+  async whisper({ message, target, text }) {
+    const prefix = this.app.config.discord.prefix
+    const channel = message.channel
+    const fail = description => channel.send({ embeds: [{ color: 0xDC143C, description }] })
+
+    if (!target || !text) {
+      return fail(`Usage: \`${prefix}whisper <ign or uuid> <message>\`\nExample: \`${prefix}whisper Bob are you free for dungeons?\``)
+    }
+
+    const minecraft = this.app.minecraft
+    if (minecraft.bot?.player === undefined) {
+      return fail(`The bot isn't online in Minecraft, so the whisper wasn't sent.`)
+    }
+
+    const player = await GuildManager.resolvePlayer(target).catch(() => null)
+    if (!player && !/^\w{1,16}$/.test(target)) {
+      return fail(`Couldn't find a player called **${target}**.`)
+    }
+    const name = player?.name ?? target
+
+    const content = (await this.messageHandler.stripDiscordContent({ content: text, guild: message.guild }).catch(() => text)) || text
+
+    const sender = message.member?.displayName ?? message.author.username
+
+    minecraft.lastWhisper = { name, at: Date.now() }
+    if (typeof minecraft.sendChat == 'function') minecraft.sendChat(`/w ${name} ${sender}: `, content)
+    else minecraft.bot.chat(`/w ${name} ${sender}: ${content}`)
+    this.app.log.broadcast(`${sender} to ${name}: ${content}`, 'DM')
+
+    let thread = null
+    try {
+      thread = await this.getDmThread(name)
+      if (channel.id != thread.id) {
+        const avatarURL = message.author.displayAvatarURL?.()
+        if (this.app.config.discord.messageMode.toLowerCase() == 'webhook' && this.dmwebhook) {
+          await this.dmwebhook.send({ content: text.replace(/@/g, ''), username: sender, avatarURL, threadId: thread.id })
+        } else {
+          await thread.send({ embeds: [{ description: text, color: 0x5865F2, timestamp: new Date(), author: { name: `${sender} (from Discord)`, icon_url: avatarURL } }] })
+        }
+      }
+    } catch (err) {
+      this.app.log.error(`Couldn't open the DM thread for ${name}: ${err.message}`)
+    }
+
+    if (channel.id != thread?.id) {
+      await channel.send({ embeds: [{
+        color: 0x47F049,
+        description: `✉️ Whispered **${name}**${thread ? `. Conversation: <#${thread.id}>` : ", but the DM thread couldn't be opened"}`
+      }] })
+    }
+  }
+
   async dmNotice(username, text) {
     try {
       const thread = await this.getDmThread(username)
@@ -237,6 +289,19 @@ class DiscordManager extends CommunicationBridge {
         ]
       })
     })
+  }
+
+  onBroadcastChatError({ message, color, target }) {
+    if (target?.dm) {
+      this.app.log.broadcast(`${message} (whisper to ${target.dm})`, 'Event')
+      return this.dmNotice(target.dm, `⚠️ ${message}`)
+    }
+
+    this.app.log.broadcast(message, 'Event')
+    const channelId = target == 'officer' ? this.app.config.discord.occhannel : this.app.config.discord.gcchannel
+    return this.client.channels.fetch(channelId)
+      .then(channel => channel.send({ embeds: [{ color, description: message }] }))
+      .catch(err => this.app.log.error(`Couldn't post a chat error: ${err.message}`))
   }
 
   onBroadcastHeadedEmbed({ message, title, icon, color, chatType, username }) {
@@ -391,7 +456,7 @@ class DiscordManager extends CommunicationBridge {
           `🆔 \`${result.uuid}\``,
           "",
           inGuild === false
-            ? `They aren't in the guild, so there was nothing to kick.`
+            ? `They aren't in the guild, so there was no one to kick.`
             : botOnline
               ? `Kicked from the guild with: *${kickReason}*`
               : `⚠️ The bot isn't online in Minecraft, so they weren't kicked. Kick them in-game or run \`${prefix}ban\` again once the bot is back.`,
