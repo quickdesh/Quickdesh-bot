@@ -380,7 +380,8 @@ class DiscordManager extends CommunicationBridge {
 
       const kickReason = `Banned: ${result.ban.reason ?? "No reason given"}`.slice(0, 200)
       const botOnline = this.app.minecraft.bot?.player !== undefined
-      if (botOnline) this.app.minecraft.bot.chat(`/g kick ${result.name} ${kickReason}`)
+      const inGuild = await GuildManager.isInGuild(this.app, result.uuid)
+      if (botOnline && inGuild !== false) this.app.minecraft.bot.chat(`/g kick ${result.name} ${kickReason}`)
 
       await channel.send({ embeds: [{
         color: 0xDA373C,
@@ -389,9 +390,11 @@ class DiscordManager extends CommunicationBridge {
           formatBan(result.ban),
           `🆔 \`${result.uuid}\``,
           "",
-          botOnline
-            ? `Kicked from the guild with: *${kickReason}*`
-            : `⚠️ The bot isn't online in Minecraft, so they weren't kicked. Kick them in-game or run \`${prefix}ban\` again once the bot is back.`,
+          inGuild === false
+            ? `They aren't in the guild, so there was nothing to kick.`
+            : botOnline
+              ? `Kicked from the guild with: *${kickReason}*`
+              : `⚠️ The bot isn't online in Minecraft, so they weren't kicked. Kick them in-game or run \`${prefix}ban\` again once the bot is back.`,
           ...(result.previous ? ["", `This replaced their earlier ban from <t:${result.previous.at}:d>${result.previous.reason ? ` (${result.previous.reason})` : ""}.`] : []),
           ...(result.history.length ? ["", `📜 They have ${result.history.length} earlier ban${result.history.length === 1 ? "" : "s"} on record. \`${prefix}banlist ${result.name}\` shows them.`] : [])
         ].join("\n")

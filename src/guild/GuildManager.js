@@ -5,6 +5,7 @@ const { getPlayerStats } = require("./handlers/HypixelStatsHandler.js")
 const ActivityCheckHandler = require("./handlers/ActivityCheckHandler.js")
 const ActivitySettingsHandler = require("./handlers/ActivitySettingsHandler.js")
 const BanListHandler = require("./handlers/BanListHandler.js")
+const { hypixelGet } = require("./handlers/HypixelApiHandler.js")
 
 async function ensureUser(input) {
     const player =
@@ -321,7 +322,20 @@ async function getPlayerBanRecord(username) {
     }
 }
 
+async function isInGuild(app, uuid) {
+    const guildName = (app.config.hypixel.guildName || app.config.discord.guildname || "").toLowerCase()
+    if (!app.config.hypixel.apiKey || !guildName || !uuid) return null
+
+    try {
+        const data = await hypixelGet(`guild?player=${uuid.replace(/-/g, "")}`, app.config.hypixel.apiKey)
+        return data.guild?.name?.toLowerCase() === guildName
+    } catch {
+        return null
+    }
+}
+
 module.exports = {
+    isInGuild,
     parseUuid,
     resolvePlayer,
     banPlayer,
