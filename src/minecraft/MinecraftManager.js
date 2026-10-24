@@ -345,8 +345,8 @@ class MinecraftManager extends CommunicationBridge {
 				waity(0.2)
 			}
 
-				this.bot.chat(`/gc ${username} sent an attachment in Discord`)
-				this.app.log.broadcast(`${username} sent an attachment in Discord`, 'Guild')
+				this.bot.chat(`/gc ${username} sent an attachment in the Disc.`)
+				this.app.log.broadcast(`${username} sent an attachment in the Disc.`, 'Guild')
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Guild')
@@ -371,8 +371,8 @@ class MinecraftManager extends CommunicationBridge {
 				this.bot.chat(`/oc ${username}: ${message}`)
 				waity(0.2)
 			}
-				this.bot.chat(`/oc ${username} sent an attachment in Discord`)
-				this.app.log.broadcast(`${username} sent an attachment in Discord`, 'Officer')
+				this.bot.chat(`/oc ${username} sent an attachment in the Disc.`)
+				this.app.log.broadcast(`${username} sent an attachment in the Disc.`, 'Officer')
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Officer')
