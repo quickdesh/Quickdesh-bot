@@ -11,7 +11,7 @@ class MessageHandler {
 		if (oldMessage.content!=newMessage.content){
 
 			console.log(`${oldMessage.member.displayName} edited their message, from "${oldMessage.content}" to "${newMessage.content}"`)
-			this.discord.app.minecraft.bot.chat(`/gc ${oldMessage.member.displayName} edited (${oldMessage.content}) to (${newMessage.content})`)
+			this.discord.app.minecraft.sendChat(`/gc ${oldMessage.member.displayName} edited `, `(${oldMessage.content}) to (${newMessage.content})`, `/gc ${oldMessage.member.displayName}: `)
 		}
 		else{
 			return

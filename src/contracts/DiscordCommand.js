@@ -27,7 +27,7 @@ class DiscordCommand {
 
 	sendMinecraftMessage(message) {
 		if (this.discord.app.minecraft.bot.player !== undefined) {
-			this.discord.app.minecraft.bot.chat(message)
+			this.discord.app.minecraft.sendChatLine(message)
 		}
 	}
 

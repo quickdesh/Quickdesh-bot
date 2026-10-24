@@ -13,7 +13,7 @@ class MinecraftCommand {
 
 	send(message) {
 		if (this.minecraft.bot.player !== undefined) {
-			this.minecraft.bot.chat(message)
+			this.minecraft.sendChatLine(message)
 		}
 	}
 

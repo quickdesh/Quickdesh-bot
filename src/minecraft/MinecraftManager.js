@@ -7,6 +7,36 @@ const config=require('../../config.json')
 const Discord = require('discord.js')
 var a=0
 
+const CHAT_DELAY_MS = 600
+
+function splitChat(header, text, nextHeader = header, limit = 256) {
+	const lines = []
+	let rest = String(text ?? '').replace(/\s+/g, ' ').trim()
+	let prefix = header.slice(0, limit - 20)
+
+	while (rest.length) {
+		const room = limit - prefix.length
+		if (rest.length <= room) {
+			lines.push(prefix + rest)
+			break
+		}
+
+		let cut = rest.lastIndexOf(' ', room)
+		if (cut <= 0) cut = room
+
+		lines.push(prefix + rest.slice(0, cut))
+		rest = rest.slice(cut).trimStart()
+		prefix = nextHeader.slice(0, limit - 20)
+	}
+
+	return lines
+}
+
+function chatHeader(line) {
+	const match = /^(\/(?:w|msg|tell|whisper)\s+\S+\s+|\/\S+\s+)/i.exec(line)
+	return match ? match[1] : ''
+}
+
 class MinecraftManager extends CommunicationBridge {
 	constructor(app) {
 		super()
@@ -314,6 +344,29 @@ class MinecraftManager extends CommunicationBridge {
 		bot.on('error', err => console.log(err))
 	}
 
+	chatLimit() {
+		return this.bot?.supportFeature?.('lessCharsInChat') ? 100 : 256
+	}
+
+	sendChat(header, text, nextHeader = header) {
+		const lines = splitChat(header, text, nextHeader, this.chatLimit())
+
+		this.chatQueue = (this.chatQueue ?? Promise.resolve()).then(async () => {
+			for (const line of lines) {
+				if (this.bot?.player === undefined) return
+				this.bot.chat(line)
+				await new Promise(resolve => setTimeout(resolve, CHAT_DELAY_MS))
+			}
+		}).catch(err => this.app.log.error(`Sending to Minecraft chat failed: ${err.message}`))
+
+		return this.chatQueue
+	}
+
+	sendChatLine(line) {
+		const header = chatHeader(line)
+		return this.sendChat(header, line.slice(header.length))
+	}
+
 	onBroadcast({ username, message, replyingTo, repliedTomsg, Attachmsg, chatType}) {
 		function waity(seconds) {
 			var waitTill = new Date(new Date().getTime() + seconds * 1000)
@@ -334,23 +387,22 @@ class MinecraftManager extends CommunicationBridge {
 			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)) {
 				this.app.log.broadcast(`${username}: ${message}`, 'Guild')
 				
-				this.bot.chat(`/gc ${username}: ${message}`)
+				this.sendChat(`/gc ${username}: `, message)
 
 			}
 			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 			
 				if(message!==""){
 				this.app.log.broadcast(`${username}: ${message}`, 'Guild')
-				this.bot.chat(`/gc ${username}: ${message}`)
-				waity(0.2)
+				this.sendChat(`/gc ${username}: `, message)
 			}
 
-				this.bot.chat(`/gc ${username} sent an attachment in the Disc.`)
+				this.sendChat(`/gc `, `${username} sent an attachment in the Disc.`)
 				this.app.log.broadcast(`${username} sent an attachment in the Disc.`, 'Guild')
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Guild')
-				this.bot.chat(`/gc ${replyingTo ? `${username} -> ${replyingTo} >> ${repliedTomsg} <<` : `${username}:`} ${message}`)
+				this.sendChat(`/gc ${replyingTo ? `${username} -> ${replyingTo} >> ${repliedTomsg} <<` : `${username}:`} `, message, `/gc ${username}: `)
 			}
 		
 	
@@ -362,22 +414,21 @@ class MinecraftManager extends CommunicationBridge {
 			if ((this.bot.player !== undefined) && (replyingTo == undefined) && (Attachmsg == undefined)) {
 				this.app.log.broadcast(`${username}: ${message}`, 'Officer')
 		
-				this.bot.chat(`/oc ${username}: ${message}`)
+				this.sendChat(`/oc ${username}: `, message)
 
 			}
 			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 				if(message!==""){
 				this.app.log.broadcast(`${username}: ${message}`, 'Officer')
-				this.bot.chat(`/oc ${username}: ${message}`)
-				waity(0.2)
+				this.sendChat(`/oc ${username}: `, message)
 			}
-				this.bot.chat(`/oc ${username} sent an attachment in the Disc.`)
+				this.sendChat(`/oc `, `${username} sent an attachment in the Disc.`)
 				this.app.log.broadcast(`${username} sent an attachment in the Disc.`, 'Officer')
 			}
 			else if (this.bot.player !== undefined) {
 				this.app.log.broadcast(`${username} replied to ${replyingTo}: ${message}`, 'Officer')
 			
-				this.bot.chat(`/oc ${replyingTo ? `${username} -> ${replyingTo} "${repliedTomsg}" :` : `${username}:`} ${message}`)
+				this.sendChat(`/oc ${replyingTo ? `${username} -> ${replyingTo} "${repliedTomsg}" :` : `${username}:`} `, message, `/oc ${username}: `)
 			}
 		}
 
@@ -386,16 +437,15 @@ class MinecraftManager extends CommunicationBridge {
 
 				this.app.log.broadcast(`To ${replyingTo}: ${message}`, 'DM')
 		
-				this.bot.chat(`/w ${replyingTo} ${message}`)
+				this.sendChat(`/w ${replyingTo} `, message)
 	
 			}
 			else if ((this.bot.player !== undefined) && (Attachmsg !== undefined)) {
 		
 				if(message!=="") {
-				this.bot.chat(`/w ${replyingTo} ${message}`)
-				waity(0.2)
+				this.sendChat(`/w ${replyingTo} `, message)
 			}
-				this.bot.chat(`/w ${replyingTo} ${Attachmsg}`)
+				this.sendChat(`/w ${replyingTo} `, Attachmsg)
 				this.app.log.broadcast(`Sent an attachment to ${replyingTo}`, 'DM')
 			}
 		}
