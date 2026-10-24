@@ -1,4 +1,7 @@
 const fs = require('fs')
+const path = require('path')
+
+const CONFIG_PATH = path.join(__dirname, '..', 'config.json')
 
 class Configuration {
 	properties = {
@@ -85,6 +88,15 @@ class Configuration {
 
 	get hypixel() {
 		return this.properties.hypixel || {}
+	}
+
+	setHypixelApiKey(apiKey) {
+		this.properties.hypixel = { ...this.properties.hypixel, apiKey }
+
+		const saved = fs.existsSync(CONFIG_PATH) ? JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) : {}
+		saved.hypixel = { ...saved.hypixel, apiKey }
+		fs.writeFileSync(CONFIG_PATH + '.tmp', JSON.stringify(saved, null, '\t'))
+		fs.renameSync(CONFIG_PATH + '.tmp', CONFIG_PATH)
 	}
 }
 

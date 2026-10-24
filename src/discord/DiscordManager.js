@@ -33,6 +33,7 @@ class DiscordManager extends CommunicationBridge {
         Discord.GatewayIntentBits.MessageContent,
         Discord.GatewayIntentBits.DirectMessages,
       ],
+      partials: [Discord.Partials.Channel],
       allowedMentions: {
         parse: [
           "users"

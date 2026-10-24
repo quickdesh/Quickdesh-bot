@@ -31,6 +31,22 @@ class CommandHandler {
       return false
     }
 
+    if (!message.guild && !(command.isOwnerCommand && this.isOwner(message))) {
+      return false
+    }
+
+    if (command.isOwnerCommand && !this.isOwner(message)) {
+      message.channel.send({
+        embeds: [
+          {
+            color: 0xDC143C,
+            description: `Only the bot owner can do that.`
+          }
+        ]
+      })
+      return true
+    }
+
     let isCommander = await this.isCommander(message)
 
     if ((command.isAdminCommand && (!this.isOwner(message) && !isCommander))) {
@@ -47,13 +63,14 @@ class CommandHandler {
     }
 
 
-    this.discord.app.log.discord(`[${command.name}] ${message.content}`)
+    this.discord.app.log.discord(`[${command.name}] ${command.hidesArgs ? `${this.prefix}${commandName} (arguments hidden)` : message.content}`)
     command.onCommand(message)
 
     return true
   }
 
   async isCommander(message) {
+    if (!message.guild) return false
     const member = await message.guild.members.fetch(message.author.id, { force: true });
     return member.roles.cache.some(r => this.discord.app.config.discord.commandRoles.includes(r.id));
   }

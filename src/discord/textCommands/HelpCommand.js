@@ -51,11 +51,12 @@ class HelpCommand extends DiscordCommand {
     const prefix = this.discord.app.config.discord.prefix
     const commands = this.discord.messageHandler.command.commands
     const query = this.getArgs(message)[0]?.toLowerCase().replace(prefix, '')
+    const isOwner = message.author.id == this.discord.app.config.discord.ownerId
 
     if (query) {
       const command = commands.get(query) || commands.find(cmd => cmd.aliases && cmd.aliases.includes(query))
 
-      if (!command) {
+      if (!command || (command.isOwnerCommand && !isOwner)) {
         message.channel.send({ embeds: [{ color: 0xDC143C, description: `There's no command called \`${query}\`. Type \`${prefix}help\` to see them all.` }] })
         return
       }
@@ -69,7 +70,8 @@ class HelpCommand extends DiscordCommand {
       return `\`${prefix}${command.name}\`${aliases}: ${command.description}`
     }
     const everyone = [...commands.values()].filter(command => !command.isAdminCommand).map(line)
-    const commanders = [...commands.values()].filter(command => command.isAdminCommand).map(line)
+    const commanders = [...commands.values()].filter(command => command.isAdminCommand && !command.isOwnerCommand).map(line)
+    const owner = isOwner ? [...commands.values()].filter(command => command.isOwnerCommand).map(line) : []
 
     message.channel.send({
       embeds: [
@@ -84,6 +86,7 @@ class HelpCommand extends DiscordCommand {
           fields: [
             ...chunkLines('Commands', everyone),
             ...(commanders.length ? chunkLines('Commander Commands', commanders) : []),
+            ...(owner.length ? chunkLines('Owner Commands', owner) : []),
             {
               name: `Info`,
               value: [
@@ -114,7 +117,7 @@ class HelpCommand extends DiscordCommand {
       fields.push({ name: 'Aliases', value: command.aliases.map(a => `\`${prefix}${a}\``).join(', '), inline: true })
     }
 
-    fields.push({ name: 'Who can use it', value: command.isAdminCommand ? 'Commanders and the owner' : 'Everyone', inline: true })
+    fields.push({ name: 'Who can use it', value: command.isOwnerCommand ? 'Only the owner' : command.isAdminCommand ? 'Commanders and the owner' : 'Everyone', inline: true })
 
     for (const section of help?.sections ?? []) {
       fields.push(...chunkLines(section.name, section.lines))
